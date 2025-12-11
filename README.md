@@ -41,3 +41,6 @@ uvicorn main:app --reload
 ## Observaciones
 - Las rutas de íconos (`/favicon.ico`, `/apple-touch-icon*.png`) devuelven un PNG transparente para evitar 404.
 - `.env` y `.venv` están ignorados en git; mantén credenciales fuera del repositorio.
+
+## Autoría
+Creado por **JectCode**.
