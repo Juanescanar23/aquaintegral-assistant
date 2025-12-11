@@ -14,6 +14,7 @@ API en FastAPI que recibe webhooks de WhatsApp, registra el interés en Clientif
 - `WHATSAPP_BASE_URL`: base de WhatsApp Cloud API (por defecto `https://graph.facebook.com/v19.0`).
 - `WHATSAPP_PHONE_NUMBER_ID`: ID del número de teléfono en WhatsApp Cloud.
 - `WHATSAPP_TOKEN`: token Bearer de WhatsApp Cloud.
+- `WHATSAPP_VERIFY_TOKEN`: token de verificación del webhook configurado en Meta.
 
 ## Instalación y ejecución local
 1) Crear y activar entorno virtual

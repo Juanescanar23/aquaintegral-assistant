@@ -1,13 +1,14 @@
 from functools import lru_cache
 
-from pydantic import AnyHttpUrl, BaseSettings, Field
+from pydantic import AnyHttpUrl, Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     """
     Configuración de la aplicación, cargada desde variables de entorno (.env).
 
-    Todo lo que necesitemos para integraciones externas debe pasar por aquí.
+    Adaptado a Pydantic v2: usamos pydantic-settings para BaseSettings.
     """
 
     ENV: str = Field(
@@ -35,17 +36,21 @@ class Settings(BaseSettings):
         ...,
         description="Token (Bearer) de la API de WhatsApp Cloud",
     )
+    WHATSAPP_VERIFY_TOKEN: str = Field(
+        ...,
+        description="Token de verificación del webhook configurado en Meta",
+    )
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    # Configuración de BaseSettings en Pydantic v2
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+    )
 
 
 @lru_cache
 def get_settings() -> Settings:
     """
     Devuelve una única instancia de Settings (cacheada).
-
-    Se usa en todo el proyecto para evitar recrear Settings muchas veces.
     """
     return Settings()
