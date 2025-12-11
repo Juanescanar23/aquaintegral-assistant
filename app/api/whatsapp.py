@@ -48,11 +48,10 @@ async def whatsapp_webhook(request: Request):
 
     try:
         reply_text = await process_incoming_message(phone=phone, text=text)
+        await send_message(phone, reply_text)
     except HTTPStatusError as exc:
-        raise HTTPException(status_code=502, detail="Clientify request failed") from exc
+        raise HTTPException(status_code=502, detail="Upstream request failed") from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail="Unexpected error") from exc
-
-    await send_message(phone, reply_text)
 
     return {"status": "ok"}
