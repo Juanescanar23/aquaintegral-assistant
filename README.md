@@ -1,6 +1,6 @@
 # Aquaintegral Conversational Assistant
 
-API en FastAPI que recibe webhooks de WhatsApp, registra el interés en Clientify y responde al usuario. Incluye rutas de salud y manejadores de íconos para evitar 404 ruidosos.
+API en FastAPI que recibe webhooks de WhatsApp, registra el interés en Clientify y responde al usuario usando WhatsApp Cloud API. Incluye rutas de salud y manejadores de íconos para evitar 404 ruidosos.
 
 ## Endpoints principales
 - `GET /` responde metadatos de la API.
@@ -37,8 +37,8 @@ uvicorn main:app --reload
 
 ## Flujo del webhook de WhatsApp
 - Se extrae el número de teléfono del payload (`wa_id` o `from`) y el texto del mensaje.
-- Se consulta/crea el contacto en Clientify, se agrega una nota con el mensaje y se genera un negocio con el nombre “Interés vía WhatsApp (bot)”.
-- Se envía una respuesta al usuario con `send_message`; actualmente es un stub que solo imprime en consola. Sustituye esa función por la integración real del proveedor de WhatsApp que utilices.
+- `process_incoming_message` (servicio de orquestación) consulta/crea el contacto en Clientify, agrega una nota con el mensaje y genera un negocio con el nombre “Interés vía WhatsApp (bot)”.
+- Se envía una respuesta al usuario con `send_message`, que llama a WhatsApp Cloud API con el `WHATSAPP_TOKEN` configurado.
 
 ## Observaciones
 - Las rutas de íconos (`/favicon.ico`, `/apple-touch-icon*.png`) devuelven un PNG transparente para evitar 404.
