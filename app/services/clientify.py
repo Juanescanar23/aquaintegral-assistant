@@ -4,7 +4,9 @@ from typing import Any, Dict, Optional
 
 import httpx
 
-from app.core.config import settings
+from app.core.settings import get_settings
+
+settings = get_settings()
 
 
 class ClientifyClient:

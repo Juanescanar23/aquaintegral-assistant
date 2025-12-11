@@ -8,15 +8,12 @@ API en FastAPI que recibe webhooks de WhatsApp, registra el interés en Clientif
 - `POST /webhook/whatsapp` recibe payloads de Meta/WhatsApp, localiza o crea el contacto en Clientify, crea un negocio y agrega una nota con el mensaje recibido. Luego envía una respuesta de cortesía (envío simulado).
 
 ## Variables de entorno (`.env`)
-- `ENV`: nombre del entorno (ej. `local`, `dev`, `prod`).
-- `OPENAI_API_KEY`: opcional, reservado para futuras integraciones.
-- `DATABASE_URL`: opcional.
-- `WHATSAPP_VERIFY_TOKEN`: opcional, para validación de webhooks si se requiere.
-- `WHATSAPP_ACCESS_TOKEN`: opcional, para futuras llamadas al API oficial de WhatsApp.
-- `CLIENTIFY_API_KEY`: token de API obligatorio para crear/consultar contactos y negocios.
-- `CLIENTIFY_BASE_URL`: base del API de Clientify (`https://api.clientify.com/v1` por defecto).
-- `HOST`: host de escucha (por defecto `0.0.0.0`).
-- `PORT`: puerto (por defecto `8000`).
+- `ENV`: nombre del entorno (ej. `development`).
+- `CLIENTIFY_BASE_URL`: base de la API de Clientify (por defecto `https://api.clientify.com/v1`).
+- `CLIENTIFY_API_KEY`: token de API para Clientify.
+- `WHATSAPP_BASE_URL`: base de WhatsApp Cloud API (por defecto `https://graph.facebook.com/v19.0`).
+- `WHATSAPP_PHONE_NUMBER_ID`: ID del número de teléfono en WhatsApp Cloud.
+- `WHATSAPP_TOKEN`: token Bearer de WhatsApp Cloud.
 
 ## Instalación y ejecución local
 1) Crear y activar entorno virtual
@@ -40,6 +37,7 @@ uvicorn main:app --reload
 
 ## Observaciones
 - Las rutas de íconos (`/favicon.ico`, `/apple-touch-icon*.png`) devuelven un PNG transparente para evitar 404.
+- Configuración centralizada en `app/core/settings.py` usando `get_settings()`.
 - `.env` y `.venv` están ignorados en git; mantén credenciales fuera del repositorio.
 
 ## Autoría

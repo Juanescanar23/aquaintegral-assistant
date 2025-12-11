@@ -3,8 +3,10 @@ import base64
 from fastapi import FastAPI
 from fastapi.responses import Response
 
-from .core.config import settings
+from .core.settings import get_settings
 from app.api.whatsapp import router as whatsapp_router
+
+settings = get_settings()
 
 app = FastAPI(
     title="Aquaintegral Conversational Assistant",
