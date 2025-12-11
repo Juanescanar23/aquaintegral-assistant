@@ -3,7 +3,7 @@ from typing import Any, Dict, Optional
 from fastapi import APIRouter, HTTPException, Request
 from httpx import HTTPStatusError
 
-from app.services.clientify import clientify_client
+from app.services.conversation import process_incoming_message
 from app.services.whatsapp import send_message
 
 router = APIRouter()
@@ -43,26 +43,16 @@ async def whatsapp_webhook(request: Request):
     payload = await request.json()
     phone = extraer_telefono(payload)
     text = extraer_texto(payload)
+    if text is None:
+        raise HTTPException(status_code=400, detail="Message text not found")
 
     try:
-        contact = await clientify_client.get_or_create_contact_by_phone(phone)
-        await clientify_client.add_note_to_contact(
-            contact["id"], f"Mensaje WhatsApp: {text}"
-        )
-        await clientify_client.create_deal(
-            contact["id"], "Interés vía WhatsApp (bot)"
-        )
+        reply_text = await process_incoming_message(phone=phone, text=text)
     except HTTPStatusError as exc:
-        raise HTTPException(
-            status_code=502, detail="Clientify request failed"
-        ) from exc
+        raise HTTPException(status_code=502, detail="Clientify request failed") from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail="Unexpected error") from exc
 
-    print("CONTACTO CLIENTIFY:", contact)
-
-    await send_message(
-        phone, "Listo, he registrado tu interés. Un asesor te contactará."
-    )
+    await send_message(phone, reply_text)
 
     return {"status": "ok"}
