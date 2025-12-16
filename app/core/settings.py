@@ -43,6 +43,20 @@ class Settings(BaseSettings):
         description="Token de verificación del webhook configurado en Meta",
     )
 
+    # === WooCommerce / WordPress ===
+    WOOCOMMERCE_BASE_URL: AnyHttpUrl = Field(
+        ...,
+        description="URL base de la tienda WooCommerce (sin /wp-json). Ej: https://tienda.aquaintegral.co",
+    )
+    WOOCOMMERCE_CONSUMER_KEY: str = Field(
+        ...,
+        description="Consumer Key de la API REST de WooCommerce",
+    )
+    WOOCOMMERCE_CONSUMER_SECRET: str = Field(
+        ...,
+        description="Consumer Secret de la API REST de WooCommerce",
+    )
+
     # === OpenAI (para después) ===
     OPENAI_API_KEY: Optional[str] = Field(
         default=None,
