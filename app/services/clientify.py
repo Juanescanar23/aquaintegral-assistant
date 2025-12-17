@@ -48,12 +48,12 @@ class ClientifyClient:
 
         - Lanza httpx.HTTPStatusError en caso de status 4xx/5xx.
         """
-        url = f"{self.base_url}{path}"
+        relative_path = path.lstrip("/")
 
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
+        async with httpx.AsyncClient(base_url=self.base_url, timeout=self.timeout) as client:
             response = await client.request(
                 method=method,
-                url=url,
+                url=relative_path,
                 headers=self.headers,
                 params=params,
                 json=json,
@@ -66,7 +66,7 @@ class ClientifyClient:
                 "Error en petición a Clientify",
                 extra={
                     "method": method,
-                    "url": url,
+                    "url": f"{self.base_url}/{relative_path}",
                     "status_code": response.status_code,
                     "response_text": response.text,
                 },
@@ -85,7 +85,7 @@ class ClientifyClient:
         # 1) Buscar contacto existente
         response = await self._request(
             "GET",
-            "/contacts/",
+            "contacts/",
             params={"phone": phone},
         )
 
@@ -110,7 +110,7 @@ class ClientifyClient:
 
         response = await self._request(
             "POST",
-            "/contacts/",
+            "contacts/",
             json=payload,
         )
         contact = response.json()
@@ -148,7 +148,7 @@ class ClientifyClient:
 
         response = await self._request(
             "POST",
-            "/deals/",
+            "deals/",
             json=payload,
         )
         deal = response.json()
@@ -177,7 +177,7 @@ class ClientifyClient:
             "text": text,
         }
 
-        path = f"/contacts/{contact_id}/notes/"
+        path = f"contacts/{contact_id}/notes/"
         response = await self._request(
             "POST",
             path,
