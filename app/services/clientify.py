@@ -174,10 +174,11 @@ class ClientifyClient:
         Añade una nota a un contacto.
         """
         payload = {
-            "text": text,
+            "name": "Nota desde WhatsApp",
+            "comment": text,
         }
 
-        path = f"contacts/{contact_id}/notes/"
+        path = f"contacts/{contact_id}/note/"
         response = await self._request(
             "POST",
             path,
