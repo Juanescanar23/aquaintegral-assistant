@@ -75,6 +75,51 @@ def _exact_line_word(norm: str) -> Optional[str]:
     return None
 
 
+def infer_line_hint_from_text(text: str) -> Optional[str]:
+    """
+    Inferencia suave de línea a partir de palabras clave (sin responder).
+    """
+    norm = _normalize(text)
+    if not norm:
+        return None
+
+    if "piscin" in norm:
+        return "piscinas"
+    if "bomba" in norm or "bombeo" in norm:
+        return "bombeo"
+    if "residual" in norm or "aguas residuales" in norm:
+        return "agua residual"
+    if "potable" in norm or "industrial" in norm:
+        return "agua potable"
+    if "analisis" in norm or "medicion" in norm or "laboratorio" in norm:
+        return "analisis"
+    return None
+
+
+def clarify_question_for_text(text: str, *, line_hint: Optional[str]) -> Optional[str]:
+    """
+    Preguntas cortas para desambiguar solicitudes muy genericas.
+    """
+    norm = _normalize(text)
+    if not norm:
+        return None
+
+    if line_hint is None and ("bomba" in norm or "bombeo" in norm):
+        return (
+            "Para ayudarte con la bomba, ¿es para piscina, agua potable o residual? "
+            "Si tienes caudal/altura o HP, indícalo."
+        )
+
+    if line_hint is None and ("filtro" in norm or "filtracion" in norm or "filtración" in norm):
+        if not any(k in norm for k in ("arena", "cartucho", "carb", "piscin")):
+            return "¿Buscas filtro de arena o cartucho? ¿Para piscina o agua potable?"
+
+    if "dosificacion" in norm or "dosificación" in norm or "dosificador" in norm:
+        return "¿Qué químico deseas dosificar y a qué caudal?"
+
+    return None
+
+
 def route_playbook(phone: str, text: str, is_weekend: bool) -> Optional[PlaybookResult]:
     """
     Router estricto:

@@ -2,6 +2,7 @@ import time
 from typing import Any, Dict, List, Optional
 
 _TTL_SECONDS = 60 * 30  # 30 min
+_GREETING_TTL_SECONDS = 60 * 60 * 6  # 6 horas
 _state: Dict[str, Dict[str, Any]] = {}
 
 
@@ -70,3 +71,20 @@ def get_candidate_by_choice(phone: str, choice_1_based: int) -> Optional[Dict[st
         return None
     c = candidates[idx]
     return c if isinstance(c, dict) else None
+
+
+def should_greet(phone: str) -> bool:
+    _purge()
+    st = _state.get(phone, {})
+    last = st.get("greeted_at")
+    if not isinstance(last, (int, float)):
+        return True
+    return (_now() - float(last)) > _GREETING_TTL_SECONDS
+
+
+def mark_greeted(phone: str) -> None:
+    _purge()
+    st = _state.get(phone, {})
+    st["greeted_at"] = _now()
+    st["updated_at"] = _now()
+    _state[phone] = st
