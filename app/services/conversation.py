@@ -26,6 +26,7 @@ from app.services.session_state import (
     clear_search_pool,
 )
 from app.services.openai_consultant import select_consultant_question
+from app.services.intent_router import route_info_request
 from app.utils.time import is_weekend_now, time_greeting
 from app.utils.formatting import format_cop
 from app.utils.test_mode import prefix_with_test_tag
@@ -169,6 +170,12 @@ async def process_incoming_message(phone: str, text: str) -> str:
         if inferred:
             set_line_hint(phone, inferred)
             hint = inferred
+
+    info_reply = route_info_request(text, line_hint=hint)
+    if info_reply:
+        clear_last_candidates(phone)
+        clear_search_pool(phone)
+        return _with_greeting(phone, info_reply)
 
     # 4) SKU directo
     sku = _extract_sku_from_text(text)
