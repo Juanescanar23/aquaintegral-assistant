@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from typing import Any, Optional
 
 
 def format_cop(value: Optional[Any]) -> str:
     """
-    Formatea un valor a COP con miles y 2 decimales (estilo ES).
-    Ej: 1234567.8 -> $1.234.567,80 COP
+    Formatea un valor a COP con miles y sin decimales (estilo ES).
+    Ej: 1234567.8 -> $1.234.568 COP
     """
     if value is None:
         return "N/D"
@@ -18,8 +18,8 @@ def format_cop(value: Optional[Any]) -> str:
     except (InvalidOperation, ValueError, TypeError):
         return "N/D"
 
-    dec = dec.quantize(Decimal("0.01"))
-    raw = f"{dec:,.2f}"  # 1,234,567.89
-    # Convertir a formato español: 1.234.567,89
-    formatted = raw.replace(",", "X").replace(".", ",").replace("X", ".")
+    dec = dec.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+    raw = f"{dec:,.0f}"  # 1,234,568
+    # Convertir a formato español: 1.234.568
+    formatted = raw.replace(",", ".")
     return f"${formatted} COP"
