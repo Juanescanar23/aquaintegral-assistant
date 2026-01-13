@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import re
 import unicodedata
@@ -56,6 +57,42 @@ def _extract_sku_from_text(text: str) -> Optional[str]:
         return None
     match = SKU_PATTERN.search(text)
     return match.group(1) if match else None
+
+
+async def _sync_clientify(phone: str, text: str) -> None:
+    """
+    Sincroniza el mensaje con Clientify sin bloquear la respuesta al usuario.
+    """
+    contact_id = None
+
+    try:
+        contact = await clientify_client.get_or_create_contact_by_phone(phone)
+        contact_id = contact.get("id")
+    except Exception:
+        logger.exception("Clientify: fallo get_or_create_contact_by_phone", extra={"phone": phone})
+
+    if contact_id:
+        try:
+            await clientify_client.add_note_to_contact(
+                contact_id=contact_id,
+                text=prefix_with_test_tag(f"Mensaje WhatsApp: {text}"),
+            )
+        except Exception:
+            logger.exception(
+                "Clientify: fallo add_note_to_contact",
+                extra={"phone": phone, "contact_id": contact_id},
+            )
+
+        try:
+            await clientify_client.create_deal(
+                contact_id=contact_id,
+                name=prefix_with_test_tag(DEFAULT_DEAL_NAME),
+            )
+        except Exception:
+            logger.exception(
+                "Clientify: fallo create_deal",
+                extra={"phone": phone, "contact_id": contact_id},
+            )
 
 
 def _with_greeting(phone: str, text: str) -> str:
@@ -159,37 +196,8 @@ def _is_more_options_request(text: str) -> bool:
 async def process_incoming_message(phone: str, text: str) -> str:
     logger.info("Procesando mensaje entrante de WhatsApp", extra={"phone": phone, "text": text})
 
-    # 1) Contacto + nota + deal (dejo tu comportamiento actual)
-    contact_id = None
-
-    try:
-        contact = await clientify_client.get_or_create_contact_by_phone(phone)
-        contact_id = contact.get("id")
-    except Exception:
-        logger.exception("Clientify: fallo get_or_create_contact_by_phone", extra={"phone": phone})
-
-    if contact_id:
-        try:
-            await clientify_client.add_note_to_contact(
-                contact_id=contact_id,
-                text=prefix_with_test_tag(f"Mensaje WhatsApp: {text}"),
-            )
-        except Exception:
-            logger.exception(
-                "Clientify: fallo add_note_to_contact",
-                extra={"phone": phone, "contact_id": contact_id},
-            )
-
-        try:
-            await clientify_client.create_deal(
-                contact_id=contact_id,
-                name=prefix_with_test_tag(DEFAULT_DEAL_NAME),
-            )
-        except Exception:
-            logger.exception(
-                "Clientify: fallo create_deal",
-                extra={"phone": phone, "contact_id": contact_id},
-            )
+    # 1) Clientify en segundo plano para no bloquear la respuesta
+    asyncio.create_task(_sync_clientify(phone, text))
 
     name_prefix: Optional[str] = None
     detected_name, name_remainder = _extract_name_and_remainder(text)
