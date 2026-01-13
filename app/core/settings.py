@@ -43,6 +43,20 @@ class Settings(BaseSettings):
         description="Token de verificación del webhook configurado en Meta",
     )
 
+    # === Twilio WhatsApp ===
+    TWILIO_ACCOUNT_SID: str = Field(
+        ...,
+        description="Account SID de Twilio",
+    )
+    TWILIO_AUTH_TOKEN: str = Field(
+        ...,
+        description="Auth Token de Twilio",
+    )
+    TWILIO_WHATSAPP_FROM: str = Field(
+        "whatsapp:+14155238886",
+        description="Número de WhatsApp de Twilio (con prefijo whatsapp:)",
+    )
+
     # === WooCommerce / WordPress ===
     WOOCOMMERCE_BASE_URL: AnyHttpUrl = Field(
         ...,
@@ -77,6 +91,20 @@ class Settings(BaseSettings):
     PORT: int = Field(
         8000,
         description="Puerto para levantar la app",
+    )
+
+    # === Modo pruebas en producción ===
+    BOT_TEST_MODE: bool = Field(
+        False,
+        description="Activa modo pruebas para restringir a números permitidos.",
+    )
+    BOT_TEST_NUMBERS: str = Field(
+        "",
+        description="Lista de números permitidos separados por coma (solo dígitos).",
+    )
+    BOT_TEST_TAG: str = Field(
+        "[TEST]",
+        description="Prefijo para notas y deals cuando el bot está en pruebas.",
     )
 
     # Configuración de pydantic-settings

@@ -102,6 +102,24 @@ class WooCommerceClient:
             return None
         return products[0]
 
+    async def get_product_by_id(self, product_id: int) -> Optional[Dict[str, Any]]:
+        """
+        Obtiene un producto por ID: GET /products/{id}
+        """
+        try:
+            response = await self._request("GET", f"/products/{int(product_id)}")
+        except Exception:
+            return None
+
+        data = response.json()
+        if not isinstance(data, dict):
+            logger.warning(
+                "Respuesta inesperada de WooCommerce /products/{id}",
+                extra={"data": data},
+            )
+            return None
+        return data
+
     async def search_products(self, query: str, per_page: int = 10) -> List[Dict[str, Any]]:
         """
         Busca productos por texto (nombre, descripción, etc.) usando ?search=.
@@ -109,11 +127,86 @@ class WooCommerceClient:
         response = await self._request(
             "GET",
             "/products",
-            params={"search": query, "per_page": per_page},
+            params={"search": query, "per_page": per_page, "status": "publish"},
         )
         data = response.json()
         if not isinstance(data, list):
             logger.warning("Respuesta inesperada de WooCommerce /products search", extra={"data": data})
+            return []
+        return data
+
+    async def search_categories(self, query: str, per_page: int = 20) -> List[Dict[str, Any]]:
+        """
+        Busca categorías por nombre: /products/categories?search=
+        """
+        response = await self._request(
+            "GET",
+            "/products/categories",
+            params={"search": query, "per_page": per_page},
+        )
+        data = response.json()
+        if not isinstance(data, list):
+            logger.warning(
+                "Respuesta inesperada de WooCommerce /products/categories search",
+                extra={"data": data},
+            )
+            return []
+        return data
+
+    async def list_categories(self, parent: Optional[int] = None, per_page: int = 100) -> List[Dict[str, Any]]:
+        """
+        Lista categorías (útil para traer hijos con parent=ID).
+        """
+        params: Dict[str, Any] = {"per_page": per_page}
+        if parent is not None:
+            params["parent"] = int(parent)
+
+        response = await self._request("GET", "/products/categories", params=params)
+        data = response.json()
+        if not isinstance(data, list):
+            logger.warning("Respuesta inesperada de WooCommerce /products/categories list", extra={"data": data})
+            return []
+        return data
+
+    async def list_products(self, per_page: int = 100, page: int = 1) -> List[Dict[str, Any]]:
+        """
+        Lista productos publicados. Útil para construir un catálogo local en memoria
+        y hacer búsqueda/ranking cuando ?search= no devuelve coincidencias.
+        """
+        response = await self._request(
+            "GET",
+            "/products",
+            params={
+                "per_page": per_page,
+                "page": page,
+                "status": "publish",
+                "orderby": "date",
+                "order": "desc",
+            },
+        )
+        data = response.json()
+        if not isinstance(data, list):
+            logger.warning("Respuesta inesperada de WooCommerce /products list", extra={"data": data})
+            return []
+        return data
+
+    async def list_recent_products(self, per_page: int = 50) -> List[Dict[str, Any]]:
+        """
+        Devuelve productos recientes publicados (ordenados por fecha desc).
+        """
+        response = await self._request(
+            "GET",
+            "/products",
+            params={
+                "per_page": per_page,
+                "orderby": "date",
+                "order": "desc",
+                "status": "publish",
+            },
+        )
+        data = response.json()
+        if not isinstance(data, list):
+            logger.warning("Respuesta inesperada de WooCommerce /products recent", extra={"data": data})
             return []
         return data
 

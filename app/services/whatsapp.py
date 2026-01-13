@@ -20,7 +20,9 @@ async def send_message(phone: str, text: str) -> None:
     """
     # Endpoint: /{phone-number-id}/messages
     # Ej: https://graph.facebook.com/v19.0/123456789012345/messages
-    url = f"{settings.WHATSAPP_BASE_URL.rstrip('/')}/{settings.WHATSAPP_PHONE_NUMBER_ID}/messages"
+    # Convertimos el AnyHttpUrl a string antes de hacer rstrip
+    base_url = str(settings.WHATSAPP_BASE_URL).rstrip("/")
+    url = f"{base_url}/{settings.WHATSAPP_PHONE_NUMBER_ID}/messages"
 
     payload: Dict[str, Any] = {
         "messaging_product": "whatsapp",

@@ -6,6 +6,7 @@ from httpx import HTTPStatusError
 
 from app.services.conversation import process_incoming_message
 from app.services.whatsapp import send_message
+from app.utils.test_mode import is_allowed_phone
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +89,13 @@ async def whatsapp_webhook(request: Request):
             status_code=400,
             detail="No se pudo extraer el teléfono del payload de WhatsApp",
         )
+
+    if not is_allowed_phone(phone):
+        logger.info(
+            "Modo pruebas: ignorando mensaje fuera de la lista permitida",
+            extra={"phone": phone},
+        )
+        return {"status": "ignored", "reason": "test_mode_allowlist"}
 
     if text is None:
         raise HTTPException(

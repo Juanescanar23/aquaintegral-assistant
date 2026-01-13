@@ -5,6 +5,7 @@ from fastapi.responses import Response
 
 from app.core.settings import get_settings
 from app.api.woocommerce import router as woocommerce_router
+from app.api.twilio import router as twilio_router
 from app.api.whatsapp import router as whatsapp_router
 
 logger = logging.getLogger(__name__)
@@ -18,6 +19,7 @@ app = FastAPI(
 # Importa el router de WhatsApp tal como ya lo tienes
 app.include_router(whatsapp_router)
 app.include_router(woocommerce_router)
+app.include_router(twilio_router)
 
 # PNG 1x1 de relleno para iconos (placeholder)
 _PLACEHOLDER_PNG = (
