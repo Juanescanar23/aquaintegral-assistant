@@ -6,6 +6,7 @@ from app.domain.playbook import WELCOME_MESSAGE
 from app.services.openai_product_query import build_product_search_plan
 from app.services.woocommerce import woocommerce_client
 from app.services.catalog_cache import search_catalog
+from app.utils.formatting import format_cop
 
 
 def _normalize(text: str) -> str:
@@ -61,6 +62,62 @@ def _keyword_queries(text: str) -> List[str]:
     return out
 
 
+def _required_groups_from_text(text: str) -> List[List[str]]:
+    norm = _normalize(text)
+    if not norm:
+        return []
+
+    groups: List[List[str]] = []
+
+    if "bomba" in norm or "bombeo" in norm or "motobomba" in norm:
+        groups.append(["bomba", "bombeo", "motobomba"])
+    if "filtro" in norm or "filtracion" in norm:
+        groups.append(["filtro", "filtracion"])
+    if "piscin" in norm:
+        groups.append(["piscina", "piscinas"])
+    if "cartucho" in norm:
+        groups.append(["cartucho", "cartuchos"])
+    if "arena" in norm:
+        groups.append(["arena"])
+    if "cloro" in norm:
+        groups.append(["cloro"])
+    if "alguicida" in norm:
+        groups.append(["alguicida"])
+    if "clarificador" in norm:
+        groups.append(["clarificador"])
+    if "dosificador" in norm or "dosificacion" in norm:
+        groups.append(["dosificador", "dosificacion", "dosificar"])
+    if "osmosis" in norm:
+        groups.append(["osmosis", "osmosis inversa"])
+    if "uv" in norm or "ultravioleta" in norm:
+        groups.append(["uv", "ultravioleta"])
+    if "fotometro" in norm:
+        groups.append(["fotometro"])
+    if "turbid" in norm:
+        groups.append(["turbidimetro", "turbidez"])
+
+    # Dedup por contenido
+    seen = set()
+    out: List[List[str]] = []
+    for g in groups:
+        key = tuple(g)
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(g)
+    return out
+
+
+def _matches_required_groups(text: str, groups: List[List[str]]) -> bool:
+    if not groups:
+        return True
+    norm = _normalize(text)
+    for group in groups:
+        if not any(token in norm for token in group):
+            return False
+    return True
+
+
 def _summarize_product(p: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "id": p.get("id"),
@@ -96,7 +153,7 @@ def _format_products_reply(products: List[Dict[str, Any]]) -> str:
         elif stock_status:
             stock_part = f"estado: {stock_status}"
 
-        price_part = f"precio: ${price} COP" if price else "precio: N/D"
+        price_part = f"precio: {format_cop(price)}" if price not in (None, "") else "precio: N/D"
         sku_part = f"SKU {sku}" if sku else "SKU N/D"
 
         line = (
@@ -140,7 +197,7 @@ async def smart_product_search(
         queries = [raw]
 
     keywords = _keyword_queries(raw)
-    keyword_tokens = set(keywords)
+    required_groups = _required_groups_from_text(raw)
     if keywords:
         if plan_used:
             queries = keywords + queries
@@ -179,10 +236,9 @@ async def smart_product_search(
         except Exception:
             continue
         for p in items:
-            if keyword_tokens:
-                text = _normalize(_product_text(p))
-                if not any(k in text for k in keyword_tokens):
-                    continue
+            text = _product_text(p)
+            if not _matches_required_groups(text, required_groups):
+                continue
             pid = p.get("id")
             if pid in seen_ids:
                 continue
@@ -201,7 +257,10 @@ async def smart_product_search(
         candidates = []
 
     if candidates:
-        top = [_summarize_product(p) for p in candidates[:5]]
+        filtered = [p for p in candidates if _matches_required_groups(_product_text(p), required_groups)]
+        if not filtered:
+            filtered = candidates
+        top = [_summarize_product(p) for p in filtered[:5]]
         return _format_products_reply(top), top
 
     return _no_results_reply(), []

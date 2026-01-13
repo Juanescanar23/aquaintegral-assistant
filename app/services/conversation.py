@@ -20,6 +20,7 @@ from app.services.session_state import (
     mark_greeted,
 )
 from app.utils.time import is_weekend_now, time_greeting
+from app.utils.formatting import format_cop
 from app.utils.test_mode import prefix_with_test_tag
 
 logger = logging.getLogger(__name__)
@@ -94,14 +95,14 @@ async def process_incoming_message(phone: str, text: str) -> str:
             clear_last_candidates(phone)
             name = cand.get("name") or "producto"
             sku_value = cand.get("sku") or "N/D"
-            price = cand.get("price") or "N/D"
+            price = format_cop(cand.get("price"))
             link = cand.get("permalink") or ""
             link_part = f"\nLink: {link}" if link else ""
             return _with_greeting(
                 phone,
                 (
                     f"Perfecto. Elegiste: {name} (SKU {sku_value}).\n"
-                    f"Precio: {price} COP.{link_part}\n"
+                    f"Precio: {price}.{link_part}\n"
                     "Confírmame ciudad y cantidad para cotizar."
                 ),
             )
@@ -155,7 +156,7 @@ async def process_incoming_message(phone: str, text: str) -> str:
             }
             stock_part = status_map.get(stock_status or "", "Actualmente no puedo confirmar el stock exacto.")
 
-        price_part = f" El precio actual es ${price} COP." if price else ""
+        price_part = f" El precio actual es {format_cop(price)}." if price else ""
         reply_text = (
             f"Encontré el producto {name} (SKU {sku_value}). "
             f"{stock_part}{price_part} "
