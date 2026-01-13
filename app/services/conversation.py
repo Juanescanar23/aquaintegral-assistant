@@ -39,6 +39,11 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_DEAL_NAME = "Interés vía WhatsApp (bot)"
 
+INTENT_TIMEOUT_SECONDS = 4.0
+CONSULT_TIMEOUT_SECONDS = 4.0
+SKU_TIMEOUT_SECONDS = 5.0
+SEARCH_TIMEOUT_SECONDS = 8.0
+
 INVENTORY_ERROR_REPLY = (
     "En este momento no puedo consultar el inventario. "
     "Si me compartes el SKU y la cantidad, lo reviso y te confirmo."
@@ -275,7 +280,13 @@ async def process_incoming_message(phone: str, text: str) -> str:
         return _respond(info_reply)
 
     # 4) OpenAI intent (info/servicios/lineas/catalogo) si aplica
-    intent_result = await classify_info_intent(text, line_hint=hint)
+    try:
+        intent_result = await asyncio.wait_for(
+            classify_info_intent(text, line_hint=hint),
+            timeout=INTENT_TIMEOUT_SECONDS,
+        )
+    except asyncio.TimeoutError:
+        intent_result = None
     if intent_result:
         if intent_result.line_key and not hint:
             set_line_hint(phone, intent_result.line_key)
@@ -296,7 +307,15 @@ async def process_incoming_message(phone: str, text: str) -> str:
         clear_last_candidates(phone)
         clear_search_pool(phone)
         try:
-            product = await woocommerce_client.get_product_by_sku(sku)
+            product = await asyncio.wait_for(
+                woocommerce_client.get_product_by_sku(sku),
+                timeout=SKU_TIMEOUT_SECONDS,
+            )
+        except asyncio.TimeoutError:
+            return _respond(
+                "Estoy consultando el catálogo y está tomando más tiempo del esperado. "
+                "Si puedes, confírmame marca o una foto del producto."
+            )
         except Exception:
             logger.exception("Error consultando WooCommerce para SKU", extra={"phone": phone, "sku": sku})
             return _respond(INVENTORY_ERROR_REPLY)
@@ -336,7 +355,13 @@ async def process_incoming_message(phone: str, text: str) -> str:
 
     # 6) Pregunta consultiva (OpenAI) si falta contexto
     asked = get_consult_questions(phone)
-    choice = await select_consultant_question(text, line_hint=hint, asked_keys=asked)
+    try:
+        choice = await asyncio.wait_for(
+            select_consultant_question(text, line_hint=hint, asked_keys=asked),
+            timeout=CONSULT_TIMEOUT_SECONDS,
+        )
+    except asyncio.TimeoutError:
+        choice = None
     if choice:
         clear_last_candidates(phone)
         clear_search_pool(phone)
@@ -352,7 +377,15 @@ async def process_incoming_message(phone: str, text: str) -> str:
 
     # 8) Búsqueda inteligente por texto (siempre Woo + rerank)
     try:
-        reply_text, selected, pool = await smart_product_search(text, line_hint=hint)
+        reply_text, selected, pool = await asyncio.wait_for(
+            smart_product_search(text, line_hint=hint),
+            timeout=SEARCH_TIMEOUT_SECONDS,
+        )
+    except asyncio.TimeoutError:
+        return _respond(
+            "Estoy revisando el catálogo de Aqua y tomó más tiempo del esperado. "
+            "Para avanzar, dime el tipo exacto, capacidad/BTU y uso."
+        )
     except Exception:
         logger.exception("Fallo smart_product_search", extra={"phone": phone, "text": text})
         return _respond(
