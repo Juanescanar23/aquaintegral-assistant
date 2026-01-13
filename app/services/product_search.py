@@ -111,7 +111,7 @@ async def smart_product_search(
             break
 
     if merged:
-        return _format_products_reply(merged, raw), merged
+        return _format_products_reply(merged), merged
 
     # 3) intento 2 (el que te quita el “zombie”): catálogo local + ranking
     try:
@@ -121,6 +121,6 @@ async def smart_product_search(
 
     if candidates:
         top = [_summarize_product(p) for p in candidates[:5]]
-        return _format_products_reply(top, raw), top
+        return _format_products_reply(top), top
 
     return _no_results_reply(), []
