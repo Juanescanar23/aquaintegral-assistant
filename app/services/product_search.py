@@ -281,7 +281,7 @@ def _format_products_reply(
         lines.append(intro_text)
         lines.append("")
     else:
-        lines.append("Opciones relacionadas:")
+        lines.append("Te comparto algunas opciones del catálogo:")
 
     for i, p in enumerate(products[:3], start=1):
         name = _truncate(p["name"])
@@ -297,9 +297,9 @@ def _format_products_reply(
         lines.append(f"Stock: {_format_stock(stock_qty, stock_status)}")
 
     lines.append("")
-    lines.append("Responde con 1, 2 o 3, o con el SKU para cotizar.")
+    lines.append("Si alguna te interesa, responde con 1, 2 o 3, o con el SKU y te cotizo.")
     if show_more_hint:
-        lines.append("Si quieres mas opciones, escribe \"mas opciones\".")
+        lines.append("Si quieres más opciones, escribe \"más opciones\".")
     outro_text = (outro or "").strip()
     if outro_text:
         lines.append("")
@@ -350,9 +350,9 @@ async def _maybe_rerank(
 
 def _no_results_reply() -> str:
     return (
-        "No encontre productos que coincidan con esa descripcion.\n"
-        "Para ayudarte a cotizar, dime el tipo, capacidad/tamano y uso (hogar/industrial). "
-        "Si tienes el SKU, envialo y lo reviso."
+        "No encontré opciones en el catálogo con esa descripción.\n"
+        "Para ayudarte a cotizar, dime el tipo, capacidad/tamaño y uso (hogar/industrial). "
+        "Si tienes el SKU, envíamelo y lo reviso."
     )
 
 
@@ -370,15 +370,15 @@ def _build_search_intro(text: str, line_hint: Optional[str]) -> Optional[str]:
     line_label = _line_label_from_hint(line_hint, text)
     if "accesor" in norm:
         if line_label:
-            return f"Con gusto. En {line_label} tenemos varios accesorios."
-        return "Con gusto. Tengo varias opciones de accesorios."
+            return f"Con gusto. Te comparto opciones de accesorios para {line_label}."
+        return "Con gusto. Te comparto opciones de accesorios del catálogo."
     if "informacion" in norm or "info" in norm:
         if line_label:
-            return f"Claro. En {line_label} tenemos varias opciones."
-        return "Claro. Aqui tienes opciones relacionadas."
+            return f"Claro. Aquí tienes opciones del catálogo para {line_label}."
+        return "Claro. Aquí tienes opciones del catálogo."
     if line_label:
-        return f"Listo, encontre opciones para {line_label}."
-    return "Listo, encontre opciones relacionadas."
+        return f"Listo. En el catálogo de {line_label} encontré estas opciones."
+    return "Listo. En el catálogo encontré estas opciones."
 
 
 def _build_search_outro(text: str, line_hint: Optional[str]) -> Optional[str]:
@@ -387,16 +387,16 @@ def _build_search_outro(text: str, line_hint: Optional[str]) -> Optional[str]:
         return None
     if "accesor" in norm or "repuesto" in norm:
         return (
-            "Si buscas un accesorio especifico (iluminacion, limpieza, seguridad o repuestos), "
-            "dimelo y afino la busqueda."
+            "Si buscas un accesorio específico (iluminación, limpieza, seguridad o repuestos), "
+            "dímelo y afino la búsqueda."
         )
     if "quim" in norm:
-        return "Si buscas un quimico especifico (cloro, alguicida, clarificador), dimelo."
+        return "Si buscas un químico específico (cloro, alguicida, clarificador), dímelo."
     if "bomba" in norm or "bombeo" in norm:
-        return "Si tienes caudal, altura o HP, dimelos para afinar."
+        return "Si tienes caudal, altura o HP, dímelos para afinar."
     if line_hint and "piscin" in norm:
-        return "Si prefieres otro tipo (bomba, filtro, calentador o quimico), dimelo."
-    return "Si buscas algo mas especifico, dimelo y ajusto la busqueda."
+        return "Si prefieres otro tipo (bomba, filtro, calentador o químico), dímelo."
+    return "Si buscas algo más específico, dímelo y ajusto la búsqueda."
 
 
 async def smart_product_search(

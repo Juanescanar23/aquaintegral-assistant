@@ -121,7 +121,7 @@ def clarify_question_for_text(text: str, *, line_hint: Optional[str]) -> Optiona
     if line_hint is None and ("bomba" in norm or "bombeo" in norm):
         return (
             "Para ayudarte con la bomba, ¿es para piscina, agua potable o residual? "
-            "Si tienes caudal/altura o HP, indícalo."
+            "Si tienes caudal/altura o HP, cuéntamelo."
         )
 
     if line_hint is None and ("filtro" in norm or "filtracion" in norm or "filtración" in norm):
@@ -134,10 +134,10 @@ def clarify_question_for_text(text: str, *, line_hint: Optional[str]) -> Optiona
     if "accesor" in norm or "repuesto" in norm:
         if "piscin" in norm:
             return (
-                "Para piscina, que tipo de accesorio buscas "
-                "(iluminacion, limpieza, seguridad o repuestos)?"
+                "Para piscina, ¿qué tipo de accesorio buscas "
+                "(iluminación, limpieza, seguridad o repuestos)?"
             )
-        return "Que tipo de accesorio buscas?"
+        return "¿Qué tipo de accesorio buscas?"
 
     return None
 

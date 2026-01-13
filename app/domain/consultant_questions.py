@@ -7,81 +7,81 @@ QUESTION_BANK: Dict[str, List[Dict[str, str]]] = {
     "general": [
         {
             "key": "need",
-            "question": "Para ayudarte, dime que producto necesitas y para que uso.",
+            "question": "Para ayudarte mejor, ¿qué producto necesitas y para qué uso?",
         }
     ],
     "bombeo": [
         {
             "key": "application",
-            "question": "La bomba es para piscina, pozo, agua potable o residual?",
+            "question": "¿La bomba es para piscina, pozo, agua potable o residual?",
         },
         {
             "key": "flow_rate",
-            "question": "Que caudal necesitas (m3/h o L/min)?",
+            "question": "¿Qué caudal necesitas (m3/h o L/min)?",
         },
         {
             "key": "head",
-            "question": "Que altura o presion necesitas (mca)?",
+            "question": "¿Qué altura o presión necesitas (mca)?",
         },
         {
             "key": "power_voltage",
-            "question": "Que voltaje y fase tienes disponible (110/220V, mono/trifasica)?",
+            "question": "¿Qué voltaje y fase tienes disponible (110/220V, mono/trifásica)?",
         },
     ],
     "piscinas": [
         {
             "key": "product_type",
-            "question": "Buscas bomba, filtro, calentador, accesorio o quimico para piscina?",
+            "question": "¿Buscas bomba, filtro, calentador, accesorio o químico para piscina?",
         },
         {
             "key": "pool_volume",
-            "question": "Cual es el volumen de la piscina (m3) o sus medidas?",
+            "question": "¿Cuál es el volumen de la piscina (m3) o sus medidas?",
         },
         {
             "key": "use_type",
-            "question": "Es piscina residencial o comercial?",
+            "question": "¿Es piscina residencial o comercial?",
         },
     ],
     "agua_potable": [
         {
             "key": "use_type",
-            "question": "Es para hogar o industria?",
+            "question": "¿Es para hogar o industria?",
         },
         {
             "key": "source",
-            "question": "El agua viene de acueducto o pozo?",
+            "question": "¿El agua viene de acueducto o pozo?",
         },
         {
             "key": "problem",
-            "question": "Que problema quieres resolver (olor, sabor, turbidez, dureza)?",
+            "question": "¿Qué problema quieres resolver (olor, sabor, turbidez, dureza)?",
         },
     ],
     "agua_residual": [
         {
             "key": "process",
-            "question": "Que tipo de tratamiento necesitas (biologico o fisico-quimico)?",
+            "question": "¿Qué tipo de tratamiento necesitas (biológico o físico-químico)?",
         },
         {
             "key": "flow_rate",
-            "question": "Que caudal tratas (m3/h)?",
+            "question": "¿Qué caudal tratas (m3/h)?",
         },
         {
             "key": "contaminants",
-            "question": "Cuales son los contaminantes principales?",
+            "question": "¿Cuáles son los contaminantes principales?",
         },
     ],
     "analisis": [
         {
             "key": "parameter",
-            "question": "Que parametro necesitas medir (pH, cloro, turbidez, DBO/DQO)?",
+            "question": "¿Qué parámetro necesitas medir (pH, cloro, turbidez, DBO/DQO)?",
         },
         {
             "key": "use_type",
-            "question": "Es para laboratorio, piscina o planta?",
+            "question": "¿Es para laboratorio, piscina o planta?",
         },
         {
             "key": "range",
-            "question": "Tienes un rango de medicion requerido?",
+            "question": "¿Tienes un rango de medición requerido?",
         },
     ],
 }

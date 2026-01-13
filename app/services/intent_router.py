@@ -51,7 +51,7 @@ def route_info_request(text: str, *, line_hint: Optional[str]) -> Optional[str]:
 
     if _has_any(norm, ["link", "enlace", "pagina", "web", "sitio", "tienda", "catalogo", "portafolio"]):
         url = _catalog_url_for_line(line_hint, norm)
-        return f"Aqui tienes el enlace del catalogo: {url}"
+        return f"Aquí tienes el enlace del catálogo: {url}"
 
     if _has_any(norm, ["horario", "hora", "horas", "atencion", "atienden", "abren", "cierran"]):
         msg = pb.FAQ_HORARIO_ATENCION

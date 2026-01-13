@@ -38,8 +38,8 @@ logger = logging.getLogger(__name__)
 DEFAULT_DEAL_NAME = "Interés vía WhatsApp (bot)"
 
 INVENTORY_ERROR_REPLY = (
-    "He recibido tu consulta, pero en este momento no puedo consultar el inventario. "
-    "Un asesor te ayudará en breve."
+    "En este momento no puedo consultar el inventario. "
+    "Si me compartes el SKU y la cantidad, lo reviso y te confirmo."
 )
 
 SKU_PATTERN = re.compile(r"\b(\d{4,10})\b")
@@ -137,13 +137,13 @@ async def process_incoming_message(phone: str, text: str) -> str:
             sku_value = cand.get("sku") or "N/D"
             price = format_cop(cand.get("price"))
             link = cand.get("permalink") or ""
-            link_part = f"\nLink: {link}" if link else ""
+            link_part = f"\nEnlace: {link}" if link else ""
             return _with_greeting(
                 phone,
                 (
-                    f"Perfecto. Elegiste: {name} (SKU {sku_value}).\n"
+                    f"Perfecto, gracias. Seleccionaste: {name} (SKU {sku_value}).\n"
                     f"Precio: {price}.{link_part}\n"
-                    "Confírmame ciudad y cantidad para cotizar."
+                    "Para cotizar, dime ciudad y cantidad."
                 ),
             )
 
@@ -156,14 +156,14 @@ async def process_incoming_message(phone: str, text: str) -> str:
                 phone,
                 format_products_reply(
                     next_items,
-                    intro="Aqui tienes mas opciones relacionadas.",
+                    intro="Aquí tienes más opciones del catálogo.",
                     show_more_hint=False,
                 ),
             )
         return _with_greeting(
             phone,
-            "No tengo mas opciones con esa descripcion. "
-            "Puedes darme mas detalles o un SKU?",
+            "Por ahora no veo más opciones con esa descripción en el catálogo. "
+            "Si me das más detalles o el SKU, afino la búsqueda.",
         )
 
     # 3) Router playbook (menú/folletos) ANTES de búsqueda
@@ -217,7 +217,7 @@ async def process_incoming_message(phone: str, text: str) -> str:
             return _with_greeting(
                 phone,
                 (
-                    f"No encontré ningún producto con el SKU {sku}. "
+                    f"No veo ese SKU en el catálogo ({sku}). "
                     "¿Puedes verificar el código o describirme el producto que necesitas?"
                 ),
             )
@@ -241,9 +241,9 @@ async def process_incoming_message(phone: str, text: str) -> str:
 
         price_part = f" El precio actual es {format_cop(price)}." if price else ""
         reply_text = (
-            f"Encontré el producto {name} (SKU {sku_value}). "
+            f"Esto es lo que tengo en el catálogo para {name} (SKU {sku_value}). "
             f"{stock_part}{price_part} "
-            "Si quieres, puedo pasarte con un asesor para avanzar con la cotización o el pedido."
+            "¿Quieres que te cotice? Si es así, dime cantidad y ciudad."
         )
         return _with_greeting(phone, reply_text)
 
@@ -270,7 +270,7 @@ async def process_incoming_message(phone: str, text: str) -> str:
         logger.exception("Fallo smart_product_search", extra={"phone": phone, "text": text})
         return _with_greeting(
             phone,
-            "En este momento no puedo consultar el catálogo. ¿Me indicas el SKU o una foto del producto?",
+            "En este momento no puedo consultar el catálogo. ¿Me compartes el SKU o una foto del producto?",
         )
 
     if pool:

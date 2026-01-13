@@ -20,7 +20,7 @@ def _catalog_url_for_line(line_key: Optional[str]) -> str:
 
 
 def _format_lines_list(*, include_title: bool = True) -> str:
-    lines = ["Lineas:"] if include_title else []
+    lines = ["Líneas:"] if include_title else []
     for idx, label in enumerate(BUSINESS_LINES.values(), start=1):
         lines.append(f"{idx}) {label}")
     return "\n".join(lines)
@@ -46,7 +46,7 @@ def build_info_response(
 
     if intent == "company_info":
         lines = [
-            f"Con gusto. Somos {COMPANY_NAME}. Brindamos soluciones en agua potable, residual, bombeo, analisis y piscinas.",
+            f"Con gusto. En {COMPANY_NAME} ayudamos con soluciones en agua potable, residual, bombeo, análisis y piscinas.",
             "",
             _format_lines_list(),
             "",
@@ -55,8 +55,8 @@ def build_info_response(
         for item in SERVICES:
             lines.append(f"- {item}")
         lines.append("")
-        lines.append(f"Catalogo: {WEBSITE_URL}")
-        lines.append("Dime que necesitas y te ayudo.")
+        lines.append(f"Catálogo: {WEBSITE_URL}")
+        lines.append("Cuéntame qué necesitas y te guío.")
         return "\n".join(lines)
 
     if intent == "services":
@@ -64,7 +64,7 @@ def build_info_response(
         for item in SERVICES:
             lines.append(f"- {item}")
         lines.append("")
-        lines.append("Quieres asesorarte en alguna linea en particular?")
+        lines.append("¿Quieres asesorarte en alguna línea en particular?")
         lines.append(_format_lines_list())
         return "\n".join(lines)
 
@@ -72,24 +72,24 @@ def build_info_response(
         if not line_key:
             return "\n".join(
                 [
-                    "Trabajamos en estas lineas:",
+                    "Trabajamos en estas líneas:",
                     _format_lines_list(include_title=False),
                     "",
-                    "Cual te interesa?",
+                    "¿Cuál te interesa?",
                 ]
             )
         label = BUSINESS_LINES.get(line_key, line_key)
         offers_block = _format_offers(line_key)
-        lines = [f"Con gusto. Linea: {label}"]
+        lines = [f"Con gusto. Línea: {label}"]
         if offers_block:
             lines.append(offers_block)
         lines.append("")
-        lines.append(f"Catalogo: {_catalog_url_for_line(line_key)}")
-        lines.append("Dime que producto necesitas o envia el SKU.")
+        lines.append(f"Catálogo: {_catalog_url_for_line(line_key)}")
+        lines.append("Dime qué producto necesitas o envíame el SKU.")
         return "\n".join(lines)
 
     if intent == "catalog":
         url = _catalog_url_for_line(line_key)
-        return f"Aqui tienes el enlace del catalogo: {url}"
+        return f"Aquí tienes el enlace del catálogo: {url}"
 
     return None
