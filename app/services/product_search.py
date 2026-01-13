@@ -281,7 +281,7 @@ def _format_products_reply(
         lines.append(intro_text)
         lines.append("")
     else:
-        lines.append("Te comparto algunas opciones del catálogo:")
+        lines.append("En Aqua manejamos estas opciones del catálogo:")
 
     for i, p in enumerate(products[:3], start=1):
         name = _truncate(p["name"])
@@ -350,7 +350,7 @@ async def _maybe_rerank(
 
 def _no_results_reply() -> str:
     return (
-        "No encontré opciones en el catálogo con esa descripción.\n"
+        "No encontré opciones en el catálogo de Aqua con esa descripción.\n"
         "Para ayudarte a cotizar, dime el tipo, capacidad/tamaño y uso (hogar/industrial). "
         "Si tienes el SKU, envíamelo y lo reviso."
     )
@@ -370,15 +370,15 @@ def _build_search_intro(text: str, line_hint: Optional[str]) -> Optional[str]:
     line_label = _line_label_from_hint(line_hint, text)
     if "accesor" in norm:
         if line_label:
-            return f"Con gusto. Te comparto opciones de accesorios para {line_label}."
-        return "Con gusto. Te comparto opciones de accesorios del catálogo."
+            return f"Con gusto. En Aqua manejamos estos accesorios para {line_label}:"
+        return "Con gusto. En Aqua manejamos estos accesorios:"
     if "informacion" in norm or "info" in norm:
         if line_label:
-            return f"Claro. Aquí tienes opciones del catálogo para {line_label}."
-        return "Claro. Aquí tienes opciones del catálogo."
+            return f"Con gusto. En Aqua manejamos estas opciones para {line_label}:"
+        return "Con gusto. En Aqua manejamos estas opciones:"
     if line_label:
-        return f"Listo. En el catálogo de {line_label} encontré estas opciones."
-    return "Listo. En el catálogo encontré estas opciones."
+        return f"Con gusto. En Aqua manejamos estas opciones para {line_label}:"
+    return "Con gusto. En Aqua manejamos estas opciones:"
 
 
 def _build_search_outro(text: str, line_hint: Optional[str]) -> Optional[str]:
@@ -396,7 +396,7 @@ def _build_search_outro(text: str, line_hint: Optional[str]) -> Optional[str]:
         return "Si tienes caudal, altura o HP, dímelos para afinar."
     if line_hint and "piscin" in norm:
         return "Si prefieres otro tipo (bomba, filtro, calentador o químico), dímelo."
-    return "Si buscas algo más específico, dímelo y ajusto la búsqueda."
+    return "Si buscas algo más específico, dímelo y ajusto la búsqueda en el catálogo."
 
 
 async def smart_product_search(

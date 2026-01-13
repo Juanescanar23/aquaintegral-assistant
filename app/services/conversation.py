@@ -156,7 +156,7 @@ async def process_incoming_message(phone: str, text: str) -> str:
                 phone,
                 format_products_reply(
                     next_items,
-                    intro="Aquí tienes más opciones del catálogo.",
+                    intro="Con gusto. Aquí tienes más opciones del catálogo de Aqua:",
                     show_more_hint=False,
                 ),
             )
