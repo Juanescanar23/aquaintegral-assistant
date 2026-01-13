@@ -163,3 +163,22 @@ def add_consult_question(phone: str, key: str) -> None:
     st["consult_questions"] = items
     st["updated_at"] = _now()
     _state[phone] = st
+
+
+def set_customer_name(phone: str, name: str) -> None:
+    if not name:
+        return
+    _purge()
+    st = _state.get(phone, {})
+    st["customer_name"] = name
+    st["updated_at"] = _now()
+    _state[phone] = st
+
+
+def get_customer_name(phone: str) -> Optional[str]:
+    _purge()
+    st = _state.get(phone)
+    if not st:
+        return None
+    name = st.get("customer_name")
+    return name if isinstance(name, str) and name.strip() else None

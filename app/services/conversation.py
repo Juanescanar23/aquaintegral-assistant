@@ -19,6 +19,7 @@ from app.services.session_state import (
     get_candidate_by_choice,
     should_greet,
     mark_greeted,
+    set_customer_name,
     get_consult_questions,
     add_consult_question,
     get_next_search_results,
@@ -43,6 +44,11 @@ INVENTORY_ERROR_REPLY = (
 )
 
 SKU_PATTERN = re.compile(r"\b(\d{4,10})\b")
+NAME_CONNECTORS = {"de", "del", "la", "las", "los", "y"}
+NAME_PATTERNS = [
+    re.compile(r"(?:mi nombre es|me llamo)\s+([A-Za-zÁÉÍÓÚÜÑáéíóúüñ\-\s]{2,40})", re.IGNORECASE),
+    re.compile(r"\bsoy\s+([A-Za-zÁÉÍÓÚÜÑáéíóúüñ\-\s]{2,40})", re.IGNORECASE),
+]
 
 
 def _extract_sku_from_text(text: str) -> Optional[str]:
@@ -72,6 +78,65 @@ def _normalize_intent(text: str) -> str:
     t = re.sub(r"[^a-z0-9\s]", " ", t)
     t = re.sub(r"\s+", " ", t)
     return t
+
+
+def _is_only_greeting(text: str) -> bool:
+    norm = _normalize_intent(text)
+    if not norm:
+        return True
+    greetings = {
+        "hola",
+        "buenas",
+        "buen dia",
+        "buenos dias",
+        "buenas tardes",
+        "buenas noches",
+        "saludos",
+        "que tal",
+    }
+    return norm in greetings
+
+
+def _title_case_name(raw: str) -> str:
+    parts = [p for p in re.split(r"\s+", raw.strip()) if p]
+    if not parts:
+        return raw.strip()
+    out = []
+    for p in parts:
+        lower = p.lower()
+        if lower in NAME_CONNECTORS:
+            out.append(lower)
+        else:
+            out.append(p[:1].upper() + p[1:].lower())
+    return " ".join(out)
+
+
+def _extract_name_and_remainder(text: str) -> tuple[Optional[str], str]:
+    if not text:
+        return None, ""
+    for pattern in NAME_PATTERNS:
+        match = pattern.search(text)
+        if not match:
+            continue
+        raw_name = match.group(1) or ""
+        raw_name = re.sub(r"[\s,;:\-\.]+$", "", raw_name).strip()
+        if not raw_name:
+            continue
+        if re.search(r"\d", raw_name):
+            continue
+        parts = [p for p in re.split(r"\s+", raw_name) if p]
+        if len(parts) > 4:
+            continue
+        if parts[0].lower() in {"de", "del", "desde"}:
+            continue
+        if all(p.lower() in NAME_CONNECTORS for p in parts):
+            continue
+        name = _title_case_name(raw_name)
+        remainder = (text[: match.start()] + text[match.end() :]).strip()
+        remainder = re.sub(r"^[\s,;:\-\.]+", "", remainder)
+        remainder = re.sub(r"[\s,;:\-\.]+$", "", remainder)
+        return name, remainder
+    return None, ""
 
 
 def _is_more_options_request(text: str) -> bool:
@@ -126,6 +191,24 @@ async def process_incoming_message(phone: str, text: str) -> str:
                 extra={"phone": phone, "contact_id": contact_id},
             )
 
+    name_prefix: Optional[str] = None
+    detected_name, name_remainder = _extract_name_and_remainder(text)
+    if detected_name:
+        set_customer_name(phone, detected_name)
+        mark_greeted(phone)
+        name_prefix = (
+            f"Hola {detected_name}, bienvenido a Aqua Integral SAS. "
+            "Soy tu asesor online."
+        )
+        if not name_remainder or _is_only_greeting(name_remainder):
+            return f"{name_prefix} ¿En qué puedo ayudarte hoy?"
+        text = name_remainder
+
+    def _respond(body: str) -> str:
+        if name_prefix:
+            return f"{name_prefix}\n\n{body}"
+        return _with_greeting(phone, body)
+
     # 2) Si el usuario responde 1/2/3 y hay candidatos pendientes, interpretar como selección
     choice_match = re.fullmatch(r"\s*([1-3])\s*[\.\)\-]?\s*", text or "")
     if choice_match:
@@ -138,8 +221,7 @@ async def process_incoming_message(phone: str, text: str) -> str:
             price = format_cop(cand.get("price"))
             link = cand.get("permalink") or ""
             link_part = f"\nEnlace: {link}" if link else ""
-            return _with_greeting(
-                phone,
+            return _respond(
                 (
                     f"Perfecto, gracias. Seleccionaste: {name} (SKU {sku_value}).\n"
                     f"Precio: {price}.{link_part}\n"
@@ -152,16 +234,14 @@ async def process_incoming_message(phone: str, text: str) -> str:
         if next_items:
             clear_last_candidates(phone)
             set_last_candidates(phone, next_items)
-            return _with_greeting(
-                phone,
+            return _respond(
                 format_products_reply(
                     next_items,
                     intro="Con gusto. Aquí tienes más opciones del catálogo de Aqua:",
                     show_more_hint=False,
                 ),
             )
-        return _with_greeting(
-            phone,
+        return _respond(
             "Por ahora no veo más opciones con esa descripción en el catálogo. "
             "Si me das más detalles o el SKU, afino la búsqueda.",
         )
@@ -171,7 +251,7 @@ async def process_incoming_message(phone: str, text: str) -> str:
     if pb:
         clear_last_candidates(phone)
         clear_search_pool(phone)
-        return _with_greeting(phone, pb.reply)
+        return _respond(pb.reply)
 
     hint = get_line_hint(phone)
     if not hint:
@@ -184,7 +264,7 @@ async def process_incoming_message(phone: str, text: str) -> str:
     if info_reply:
         clear_last_candidates(phone)
         clear_search_pool(phone)
-        return _with_greeting(phone, info_reply)
+        return _respond(info_reply)
 
     # 4) OpenAI intent (info/servicios/lineas/catalogo) si aplica
     intent_result = await classify_info_intent(text, line_hint=hint)
@@ -200,7 +280,7 @@ async def process_incoming_message(phone: str, text: str) -> str:
         if info_response:
             clear_last_candidates(phone)
             clear_search_pool(phone)
-            return _with_greeting(phone, info_response)
+            return _respond(info_response)
 
     # 5) SKU directo
     sku = _extract_sku_from_text(text)
@@ -211,11 +291,10 @@ async def process_incoming_message(phone: str, text: str) -> str:
             product = await woocommerce_client.get_product_by_sku(sku)
         except Exception:
             logger.exception("Error consultando WooCommerce para SKU", extra={"phone": phone, "sku": sku})
-            return _with_greeting(phone, INVENTORY_ERROR_REPLY)
+            return _respond(INVENTORY_ERROR_REPLY)
 
         if product is None:
-            return _with_greeting(
-                phone,
+            return _respond(
                 (
                     f"No veo ese SKU en el catálogo ({sku}). "
                     "¿Puedes verificar el código o describirme el producto que necesitas?"
@@ -245,7 +324,7 @@ async def process_incoming_message(phone: str, text: str) -> str:
             f"{stock_part}{price_part} "
             "¿Quieres que te cotice? Si es así, dime cantidad y ciudad."
         )
-        return _with_greeting(phone, reply_text)
+        return _respond(reply_text)
 
     # 6) Pregunta consultiva (OpenAI) si falta contexto
     asked = get_consult_questions(phone)
@@ -254,22 +333,21 @@ async def process_incoming_message(phone: str, text: str) -> str:
         clear_last_candidates(phone)
         clear_search_pool(phone)
         add_consult_question(phone, choice.key)
-        return _with_greeting(phone, choice.question)
+        return _respond(choice.question)
 
     # 7) Pregunta corta si la solicitud es muy ambigua (fallback)
     question = clarify_question_for_text(text, line_hint=hint)
     if question:
         clear_last_candidates(phone)
         clear_search_pool(phone)
-        return _with_greeting(phone, question)
+        return _respond(question)
 
     # 8) Búsqueda inteligente por texto (siempre Woo + rerank)
     try:
         reply_text, selected, pool = await smart_product_search(text, line_hint=hint)
     except Exception:
         logger.exception("Fallo smart_product_search", extra={"phone": phone, "text": text})
-        return _with_greeting(
-            phone,
+        return _respond(
             "En este momento no puedo consultar el catálogo. ¿Me compartes el SKU o una foto del producto?",
         )
 
@@ -283,4 +361,4 @@ async def process_incoming_message(phone: str, text: str) -> str:
     else:
         clear_last_candidates(phone)
 
-    return _with_greeting(phone, reply_text)
+    return _respond(reply_text)
