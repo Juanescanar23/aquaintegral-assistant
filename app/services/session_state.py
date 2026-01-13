@@ -20,7 +20,10 @@ def _purge() -> None:
 def set_line_hint(phone: str, hint: str) -> None:
     _purge()
     st = _state.get(phone, {})
+    prev_hint = st.get("line_hint")
     st["line_hint"] = hint
+    if prev_hint and prev_hint != hint:
+        st.pop("consult_questions", None)
     st["updated_at"] = _now()
     _state[phone] = st
 
@@ -86,5 +89,33 @@ def mark_greeted(phone: str) -> None:
     _purge()
     st = _state.get(phone, {})
     st["greeted_at"] = _now()
+    st["updated_at"] = _now()
+    _state[phone] = st
+
+
+def get_consult_questions(phone: str) -> List[str]:
+    _purge()
+    st = _state.get(phone, {})
+    items = st.get("consult_questions")
+    if not isinstance(items, list):
+        return []
+    out: List[str] = []
+    for item in items:
+        if isinstance(item, str) and item:
+            out.append(item)
+    return out
+
+
+def add_consult_question(phone: str, key: str) -> None:
+    if not key:
+        return
+    _purge()
+    st = _state.get(phone, {})
+    items = st.get("consult_questions")
+    if not isinstance(items, list):
+        items = []
+    if key not in items:
+        items.append(key)
+    st["consult_questions"] = items
     st["updated_at"] = _now()
     _state[phone] = st

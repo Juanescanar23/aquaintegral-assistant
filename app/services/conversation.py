@@ -18,7 +18,10 @@ from app.services.session_state import (
     get_candidate_by_choice,
     should_greet,
     mark_greeted,
+    get_consult_questions,
+    add_consult_question,
 )
+from app.services.openai_consultant import select_consultant_question
 from app.utils.time import is_weekend_now, time_greeting
 from app.utils.formatting import format_cop
 from app.utils.test_mode import prefix_with_test_tag
@@ -134,8 +137,8 @@ async def process_incoming_message(phone: str, text: str) -> str:
             return _with_greeting(
                 phone,
                 (
-                f"No encontré ningún producto con el SKU {sku}. "
-                "¿Puedes verificar el código o describirme el producto que necesitas?"
+                    f"No encontré ningún producto con el SKU {sku}. "
+                    "¿Puedes verificar el código o describirme el producto que necesitas?"
                 ),
             )
 
@@ -164,13 +167,21 @@ async def process_incoming_message(phone: str, text: str) -> str:
         )
         return _with_greeting(phone, reply_text)
 
-    # 5) Pregunta corta si la solicitud es muy ambigua
+    # 5) Pregunta consultiva (OpenAI) si falta contexto
+    asked = get_consult_questions(phone)
+    choice = await select_consultant_question(text, line_hint=hint, asked_keys=asked)
+    if choice:
+        clear_last_candidates(phone)
+        add_consult_question(phone, choice.key)
+        return _with_greeting(phone, choice.question)
+
+    # 6) Pregunta corta si la solicitud es muy ambigua (fallback)
     question = clarify_question_for_text(text, line_hint=hint)
     if question:
         clear_last_candidates(phone)
         return _with_greeting(phone, question)
 
-    # 6) Búsqueda inteligente por texto (siempre Woo + rerank)
+    # 7) Búsqueda inteligente por texto (siempre Woo + rerank)
     try:
         reply_text, selected = await smart_product_search(text, line_hint=hint)
     except Exception:
