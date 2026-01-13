@@ -131,6 +131,14 @@ def clarify_question_for_text(text: str, *, line_hint: Optional[str]) -> Optiona
     if "dosificacion" in norm or "dosificación" in norm or "dosificador" in norm:
         return "¿Qué químico deseas dosificar y a qué caudal?"
 
+    if "accesor" in norm or "repuesto" in norm:
+        if "piscin" in norm:
+            return (
+                "Para piscina, que tipo de accesorio buscas "
+                "(iluminacion, limpieza, seguridad o repuestos)?"
+            )
+        return "Que tipo de accesorio buscas?"
+
     return None
 
 

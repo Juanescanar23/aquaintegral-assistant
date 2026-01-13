@@ -31,7 +31,7 @@ QUESTION_BANK: Dict[str, List[Dict[str, str]]] = {
     "piscinas": [
         {
             "key": "product_type",
-            "question": "Buscas bomba, filtro, calentador o quimico para piscina?",
+            "question": "Buscas bomba, filtro, calentador, accesorio o quimico para piscina?",
         },
         {
             "key": "pool_volume",

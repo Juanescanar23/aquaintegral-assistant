@@ -3,6 +3,7 @@ import unicodedata
 from typing import Optional, Tuple, List, Dict, Any, Sequence
 
 from app.domain.playbook import WELCOME_MESSAGE
+from app.domain.company_profile import BUSINESS_LINES, normalize_line_key
 from app.services.openai_product_query import build_product_search_plan
 from app.services.woocommerce import woocommerce_client
 from app.services.catalog_cache import search_catalog
@@ -267,8 +268,21 @@ def _format_stock(stock_qty: Optional[Any], stock_status: str) -> str:
     return status_map.get(stock_status or "", "N/D")
 
 
-def _format_products_reply(products: List[Dict[str, Any]]) -> str:
-    lines = ["Opciones relacionadas:"]
+def _format_products_reply(
+    products: List[Dict[str, Any]],
+    *,
+    intro: Optional[str] = None,
+    outro: Optional[str] = None,
+    show_more_hint: bool = True,
+) -> str:
+    lines: List[str] = []
+    intro_text = (intro or "").strip()
+    if intro_text:
+        lines.append(intro_text)
+        lines.append("")
+    else:
+        lines.append("Opciones relacionadas:")
+
     for i, p in enumerate(products[:3], start=1):
         name = _truncate(p["name"])
         sku = p["sku"]
@@ -284,11 +298,28 @@ def _format_products_reply(products: List[Dict[str, Any]]) -> str:
 
     lines.append("")
     lines.append("Responde con 1, 2 o 3, o con el SKU para cotizar.")
+    if show_more_hint:
+        lines.append("Si quieres mas opciones, escribe \"mas opciones\".")
+    outro_text = (outro or "").strip()
+    if outro_text:
+        lines.append("")
+        lines.append(outro_text)
     return "\n".join(lines)
 
 
-def format_products_reply(products: List[Dict[str, Any]]) -> str:
-    return _format_products_reply(products)
+def format_products_reply(
+    products: List[Dict[str, Any]],
+    *,
+    intro: Optional[str] = None,
+    outro: Optional[str] = None,
+    show_more_hint: bool = True,
+) -> str:
+    return _format_products_reply(
+        products,
+        intro=intro,
+        outro=outro,
+        show_more_hint=show_more_hint,
+    )
 
 
 async def _maybe_rerank(
@@ -319,10 +350,53 @@ async def _maybe_rerank(
 
 def _no_results_reply() -> str:
     return (
-        "No encontré productos que coincidan con esa descripción.\n"
-        "Para ayudarte a cotizar: dime el tipo (ej. filtro de arena/cartucho/químico), capacidad/tamaño y uso (hogar/industrial). "
-        "Si tienes el SKU, envíamelo."
+        "No encontre productos que coincidan con esa descripcion.\n"
+        "Para ayudarte a cotizar, dime el tipo, capacidad/tamano y uso (hogar/industrial). "
+        "Si tienes el SKU, envialo y lo reviso."
     )
+
+
+def _line_label_from_hint(line_hint: Optional[str], text: str) -> Optional[str]:
+    line_key = normalize_line_key(line_hint) or normalize_line_key(text)
+    if not line_key:
+        return None
+    return BUSINESS_LINES.get(line_key, line_key)
+
+
+def _build_search_intro(text: str, line_hint: Optional[str]) -> Optional[str]:
+    norm = _normalize(text)
+    if not norm:
+        return None
+    line_label = _line_label_from_hint(line_hint, text)
+    if "accesor" in norm:
+        if line_label:
+            return f"Con gusto. En {line_label} tenemos varios accesorios."
+        return "Con gusto. Tengo varias opciones de accesorios."
+    if "informacion" in norm or "info" in norm:
+        if line_label:
+            return f"Claro. En {line_label} tenemos varias opciones."
+        return "Claro. Aqui tienes opciones relacionadas."
+    if line_label:
+        return f"Listo, encontre opciones para {line_label}."
+    return "Listo, encontre opciones relacionadas."
+
+
+def _build_search_outro(text: str, line_hint: Optional[str]) -> Optional[str]:
+    norm = _normalize(text)
+    if not norm:
+        return None
+    if "accesor" in norm or "repuesto" in norm:
+        return (
+            "Si buscas un accesorio especifico (iluminacion, limpieza, seguridad o repuestos), "
+            "dimelo y afino la busqueda."
+        )
+    if "quim" in norm:
+        return "Si buscas un quimico especifico (cloro, alguicida, clarificador), dimelo."
+    if "bomba" in norm or "bombeo" in norm:
+        return "Si tienes caudal, altura o HP, dimelos para afinar."
+    if line_hint and "piscin" in norm:
+        return "Si prefieres otro tipo (bomba, filtro, calentador o quimico), dimelo."
+    return "Si buscas algo mas especifico, dimelo y ajusto la busqueda."
 
 
 async def smart_product_search(
@@ -333,6 +407,9 @@ async def smart_product_search(
     raw = (original_text or "").strip()
     if not raw:
         return WELCOME_MESSAGE, [], []
+
+    intro = _build_search_intro(raw, line_hint)
+    outro = _build_search_outro(raw, line_hint)
 
     # 1) queries desde OpenAI (si falla, seguimos igual)
     plan_used = False
@@ -410,10 +487,10 @@ async def smart_product_search(
         if selected_raw:
             selected = [_summarize_product(p) for p in selected_raw]
             pool = [_summarize_product(p) for p in merged_raw[:12]]
-            return _format_products_reply(selected), selected, pool
+            return _format_products_reply(selected, intro=intro, outro=outro), selected, pool
         pool = [_summarize_product(p) for p in merged_raw[:12]]
         selected = pool[:3]
-        return _format_products_reply(selected), selected, pool
+        return _format_products_reply(selected, intro=intro, outro=outro), selected, pool
 
     # 3) intento 2 (el que te quita el “zombie”): catálogo local + ranking
     try:
@@ -436,9 +513,9 @@ async def smart_product_search(
         if selected_raw:
             selected = [_summarize_product(p) for p in selected_raw]
             pool = [_summarize_product(p) for p in filtered[:12]]
-            return _format_products_reply(selected), selected, pool
+            return _format_products_reply(selected, intro=intro, outro=outro), selected, pool
         pool = [_summarize_product(p) for p in filtered[:12]]
         selected = pool[:3]
-        return _format_products_reply(selected), selected, pool
+        return _format_products_reply(selected, intro=intro, outro=outro), selected, pool
 
     return _no_results_reply(), [], []

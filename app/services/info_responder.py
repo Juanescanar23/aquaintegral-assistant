@@ -46,7 +46,7 @@ def build_info_response(
 
     if intent == "company_info":
         lines = [
-            f"Somos {COMPANY_NAME}. Brindamos soluciones en agua potable, residual, bombeo, analisis y piscinas.",
+            f"Con gusto. Somos {COMPANY_NAME}. Brindamos soluciones en agua potable, residual, bombeo, analisis y piscinas.",
             "",
             _format_lines_list(),
             "",
@@ -80,7 +80,7 @@ def build_info_response(
             )
         label = BUSINESS_LINES.get(line_key, line_key)
         offers_block = _format_offers(line_key)
-        lines = [f"Linea: {label}"]
+        lines = [f"Con gusto. Linea: {label}"]
         if offers_block:
             lines.append(offers_block)
         lines.append("")

@@ -152,7 +152,14 @@ async def process_incoming_message(phone: str, text: str) -> str:
         if next_items:
             clear_last_candidates(phone)
             set_last_candidates(phone, next_items)
-            return _with_greeting(phone, format_products_reply(next_items))
+            return _with_greeting(
+                phone,
+                format_products_reply(
+                    next_items,
+                    intro="Aqui tienes mas opciones relacionadas.",
+                    show_more_hint=False,
+                ),
+            )
         return _with_greeting(
             phone,
             "No tengo mas opciones con esa descripcion. "

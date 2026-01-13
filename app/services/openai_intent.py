@@ -113,10 +113,10 @@ async def classify_info_intent(
         "Reglas:\n"
         "- company_info: preguntas sobre la empresa, que ofrece, informacion general.\n"
         "- services: preguntas sobre servicios (asesoria, instalacion, soporte).\n"
-        "- line_info: preguntas sobre una linea (agua potable, residual, bombeo, analisis, piscinas).\n"
+        "- line_info: preguntas sobre una linea o su portafolio (ej: accesorios para piscina).\n"
         "- catalog: pide link/pagina/tienda/portafolio.\n"
         "- faq: horario, ubicacion, pagos, envios.\n"
-        "- product_search: quiere producto, precio, cotizacion o stock.\n"
+        "- product_search: quiere un producto especifico, precio, cotizacion o stock.\n"
         "- other: saludo o no aplica.\n"
         "Devuelve JSON segun el schema y no inventes datos."
     )
