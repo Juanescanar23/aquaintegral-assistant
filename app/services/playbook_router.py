@@ -37,12 +37,26 @@ def _normalize(text: str) -> str:
         for ch in unicodedata.normalize("NFD", t)
         if unicodedata.category(ch) != "Mn"
     )
+    t = re.sub(r"[^a-z0-9\s]", " ", t)
     t = re.sub(r"\s+", " ", t)
     return t
 
 
 def _is_greeting(norm: str) -> bool:
-    return bool(re.fullmatch(r"(hola|buenas|buenos dias|buenas tardes|buenas noches|hey|hi|hello)", norm))
+    greetings = {
+        "hola",
+        "buenas",
+        "buen dia",
+        "buenos dias",
+        "buenas tardes",
+        "buenas noches",
+        "saludos",
+        "que tal",
+        "hey",
+        "hi",
+        "hello",
+    }
+    return norm in greetings
 
 
 def _extract_menu_choice(norm: str) -> Optional[str]:
