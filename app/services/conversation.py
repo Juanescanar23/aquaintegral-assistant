@@ -27,6 +27,8 @@ from app.services.session_state import (
 )
 from app.services.openai_consultant import select_consultant_question
 from app.services.intent_router import route_info_request
+from app.services.openai_intent import classify_info_intent
+from app.services.info_responder import build_info_response
 from app.utils.time import is_weekend_now, time_greeting
 from app.utils.formatting import format_cop
 from app.utils.test_mode import prefix_with_test_tag
@@ -177,7 +179,23 @@ async def process_incoming_message(phone: str, text: str) -> str:
         clear_search_pool(phone)
         return _with_greeting(phone, info_reply)
 
-    # 4) SKU directo
+    # 4) OpenAI intent (info/servicios/lineas/catalogo) si aplica
+    intent_result = await classify_info_intent(text, line_hint=hint)
+    if intent_result:
+        if intent_result.line_key and not hint:
+            set_line_hint(phone, intent_result.line_key)
+            hint = intent_result.line_key
+        info_response = build_info_response(
+            intent_result.intent,
+            user_text=text,
+            line_hint=hint,
+        )
+        if info_response:
+            clear_last_candidates(phone)
+            clear_search_pool(phone)
+            return _with_greeting(phone, info_response)
+
+    # 5) SKU directo
     sku = _extract_sku_from_text(text)
     if sku:
         clear_last_candidates(phone)
@@ -222,7 +240,7 @@ async def process_incoming_message(phone: str, text: str) -> str:
         )
         return _with_greeting(phone, reply_text)
 
-    # 5) Pregunta consultiva (OpenAI) si falta contexto
+    # 6) Pregunta consultiva (OpenAI) si falta contexto
     asked = get_consult_questions(phone)
     choice = await select_consultant_question(text, line_hint=hint, asked_keys=asked)
     if choice:
@@ -231,14 +249,14 @@ async def process_incoming_message(phone: str, text: str) -> str:
         add_consult_question(phone, choice.key)
         return _with_greeting(phone, choice.question)
 
-    # 6) Pregunta corta si la solicitud es muy ambigua (fallback)
+    # 7) Pregunta corta si la solicitud es muy ambigua (fallback)
     question = clarify_question_for_text(text, line_hint=hint)
     if question:
         clear_last_candidates(phone)
         clear_search_pool(phone)
         return _with_greeting(phone, question)
 
-    # 7) Búsqueda inteligente por texto (siempre Woo + rerank)
+    # 8) Búsqueda inteligente por texto (siempre Woo + rerank)
     try:
         reply_text, selected, pool = await smart_product_search(text, line_hint=hint)
     except Exception:

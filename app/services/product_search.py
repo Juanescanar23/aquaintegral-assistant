@@ -342,7 +342,7 @@ async def smart_product_search(
         if plan.get("should_ask"):
             question = str(plan.get("question") or "").strip()
             if question:
-                return question, []
+                return question, [], []
         queries: List[str] = plan.get("queries") or [raw]
     except Exception:
         queries = [raw]
