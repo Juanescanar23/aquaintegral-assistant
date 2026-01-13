@@ -1,12 +1,85 @@
 import re
 import unicodedata
-from typing import Optional, Tuple, List, Dict, Any
+from typing import Optional, Tuple, List, Dict, Any, Sequence
 
 from app.domain.playbook import WELCOME_MESSAGE
 from app.services.openai_product_query import build_product_search_plan
 from app.services.woocommerce import woocommerce_client
 from app.services.catalog_cache import search_catalog
 from app.utils.formatting import format_cop
+
+try:
+    from app.services.openai_rerank import rerank_products
+except Exception:  # pragma: no cover - optional dependency
+    rerank_products = None
+
+
+_STOPWORDS = {
+    "a",
+    "al",
+    "algo",
+    "alguien",
+    "as",
+    "con",
+    "como",
+    "cual",
+    "cuando",
+    "de",
+    "del",
+    "donde",
+    "el",
+    "ella",
+    "ellos",
+    "en",
+    "es",
+    "esta",
+    "estoy",
+    "fue",
+    "ha",
+    "hola",
+    "las",
+    "lo",
+    "los",
+    "la",
+    "me",
+    "mi",
+    "mis",
+    "necesito",
+    "quiero",
+    "que",
+    "para",
+    "por",
+    "ser",
+    "si",
+    "sin",
+    "su",
+    "sus",
+    "una",
+    "un",
+    "unos",
+    "unas",
+    "y",
+    "o",
+}
+
+_BROAD_TERMS = {
+    "agua",
+    "aguas",
+    "equipo",
+    "equipos",
+    "producto",
+    "productos",
+    "sistema",
+    "sistemas",
+    "linea",
+    "lineas",
+    "piscina",
+    "piscinas",
+    "servicio",
+    "servicios",
+}
+
+_SHORT_TERMS = {"uv", "ph"}
 
 
 def _normalize(text: str) -> str:
@@ -59,6 +132,30 @@ def _keyword_queries(text: str) -> List[str]:
         if k not in seen:
             seen.add(k)
             out.append(k)
+    return out
+
+
+def _extract_specific_terms(text: str) -> List[str]:
+    norm = _normalize(text)
+    if not norm:
+        return []
+    tokens = re.findall(r"[a-z0-9]+", norm)
+    terms: List[str] = []
+    for t in tokens:
+        if t.isdigit():
+            continue
+        if len(t) < 4 and t not in _SHORT_TERMS:
+            continue
+        if t in _STOPWORDS or t in _BROAD_TERMS:
+            continue
+        terms.append(t)
+    # dedup
+    seen = set()
+    out: List[str] = []
+    for t in terms:
+        if t not in seen:
+            seen.add(t)
+            out.append(t)
     return out
 
 
@@ -118,6 +215,13 @@ def _matches_required_groups(text: str, groups: List[List[str]]) -> bool:
     return True
 
 
+def _matches_specific_terms(text: str, terms: Sequence[str]) -> bool:
+    if not terms:
+        return True
+    norm = _normalize(text)
+    return any(t in norm for t in terms)
+
+
 def _summarize_product(p: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "id": p.get("id"),
@@ -138,32 +242,79 @@ def _product_text(p: Dict[str, Any]) -> str:
     return f"{name} {cat_names} {short_desc}"
 
 
+def _truncate(text: str, limit: int = 80) -> str:
+    if not text:
+        return ""
+    if len(text) <= limit:
+        return text
+    return text[: max(0, limit - 3)].rstrip() + "..."
+
+
+def _format_stock(stock_qty: Optional[Any], stock_status: str) -> str:
+    if stock_qty is not None:
+        try:
+            qty = int(stock_qty)
+        except Exception:
+            qty = None
+        if qty is not None:
+            return "agotado" if qty <= 0 else str(qty)
+
+    status_map = {
+        "instock": "disponible",
+        "outofstock": "agotado",
+        "onbackorder": "en pedido",
+    }
+    return status_map.get(stock_status or "", "N/D")
+
+
 def _format_products_reply(products: List[Dict[str, Any]]) -> str:
-    lines = ["Encontré estas opciones relacionadas con tu solicitud:"]
+    lines = ["Opciones relacionadas:"]
     for i, p in enumerate(products[:3], start=1):
-        name = p["name"]
+        name = _truncate(p["name"])
         sku = p["sku"]
         price = p["price"]
         stock_status = p["stock_status"]
         stock_qty = p["stock_quantity"]
 
-        stock_part = ""
-        if stock_qty is not None:
-            stock_part = f"stock: {stock_qty}"
-        elif stock_status:
-            stock_part = f"estado: {stock_status}"
+        lines.append("")
+        lines.append(f"{i}) *{name}*")
+        lines.append(f"SKU: {sku or 'N/D'}")
+        lines.append(f"Precio: {format_cop(price)}" if price not in (None, "") else "Precio: N/D")
+        lines.append(f"Stock: {_format_stock(stock_qty, stock_status)}")
 
-        price_part = f"precio: {format_cop(price)}" if price not in (None, "") else "precio: N/D"
-        sku_part = f"SKU {sku}" if sku else "SKU N/D"
-
-        line = (
-            f"{i}) {name} ({sku_part}) — {price_part}"
-            f"{f' — {stock_part}' if stock_part else ''}"
-        )
-        lines.append(line)
-
-    lines.append("Respóndeme con el número (1, 2 o 3) o con el SKU para darte disponibilidad y cotización.")
+    lines.append("")
+    lines.append("Responde con 1, 2 o 3, o con el SKU para cotizar.")
     return "\n".join(lines)
+
+
+def format_products_reply(products: List[Dict[str, Any]]) -> str:
+    return _format_products_reply(products)
+
+
+async def _maybe_rerank(
+    user_text: str,
+    candidates: Sequence[Dict[str, Any]],
+    *,
+    top_k: int = 3,
+) -> Tuple[Optional[List[Dict[str, Any]]], Optional[str]]:
+    if rerank_products is None:
+        return None, None
+    try:
+        reranked = await rerank_products(user_text, candidates, top_k=top_k)
+    except Exception:
+        return None, None
+
+    selected_ids = reranked.get("selected_ids") or []
+    question = (reranked.get("clarifying_question") or "").strip()
+    if selected_ids:
+        id_map = {p.get("id"): p for p in candidates if p.get("id") is not None}
+        selected = [id_map.get(int(pid)) for pid in selected_ids if int(pid) in id_map]
+        selected = [p for p in selected if isinstance(p, dict)]
+        if selected:
+            return selected, None
+    if question:
+        return [], question
+    return None, None
 
 
 def _no_results_reply() -> str:
@@ -178,10 +329,10 @@ async def smart_product_search(
     original_text: str,
     *,
     line_hint: Optional[str] = None,
-) -> Tuple[str, List[Dict[str, Any]]]:
+) -> Tuple[str, List[Dict[str, Any]], List[Dict[str, Any]]]:
     raw = (original_text or "").strip()
     if not raw:
-        return WELCOME_MESSAGE, []
+        return WELCOME_MESSAGE, [], []
 
     # 1) queries desde OpenAI (si falla, seguimos igual)
     plan_used = False
@@ -198,6 +349,7 @@ async def smart_product_search(
 
     keywords = _keyword_queries(raw)
     required_groups = _required_groups_from_text(raw)
+    specific_terms = _extract_specific_terms(raw)
     if keywords:
         if plan_used:
             queries = keywords + queries
@@ -207,6 +359,7 @@ async def smart_product_search(
     # 2) intento 1: Woo search normal (rápido)
     seen_ids = set()
     merged: List[Dict[str, Any]] = []
+    merged_raw: List[Dict[str, Any]] = []
 
     search_queue: List[str] = []
     for q in queries:
@@ -239,16 +392,28 @@ async def smart_product_search(
             text = _product_text(p)
             if not _matches_required_groups(text, required_groups):
                 continue
+            if not _matches_specific_terms(text, specific_terms):
+                continue
             pid = p.get("id")
             if pid in seen_ids:
                 continue
             seen_ids.add(pid)
             merged.append(_summarize_product(p))
+            merged_raw.append(p)
         if len(merged) >= 5:
             break
 
-    if merged:
-        return _format_products_reply(merged), merged
+    if merged_raw:
+        selected_raw, question = await _maybe_rerank(raw, merged_raw, top_k=3)
+        if question:
+            return question, [], []
+        if selected_raw:
+            selected = [_summarize_product(p) for p in selected_raw]
+            pool = [_summarize_product(p) for p in merged_raw[:12]]
+            return _format_products_reply(selected), selected, pool
+        pool = [_summarize_product(p) for p in merged_raw[:12]]
+        selected = pool[:3]
+        return _format_products_reply(selected), selected, pool
 
     # 3) intento 2 (el que te quita el “zombie”): catálogo local + ranking
     try:
@@ -257,10 +422,23 @@ async def smart_product_search(
         candidates = []
 
     if candidates:
-        filtered = [p for p in candidates if _matches_required_groups(_product_text(p), required_groups)]
+        filtered = [
+            p
+            for p in candidates
+            if _matches_required_groups(_product_text(p), required_groups)
+            and _matches_specific_terms(_product_text(p), specific_terms)
+        ]
         if not filtered:
             filtered = candidates
-        top = [_summarize_product(p) for p in filtered[:5]]
-        return _format_products_reply(top), top
+        selected_raw, question = await _maybe_rerank(raw, filtered, top_k=3)
+        if question:
+            return question, [], []
+        if selected_raw:
+            selected = [_summarize_product(p) for p in selected_raw]
+            pool = [_summarize_product(p) for p in filtered[:12]]
+            return _format_products_reply(selected), selected, pool
+        pool = [_summarize_product(p) for p in filtered[:12]]
+        selected = pool[:3]
+        return _format_products_reply(selected), selected, pool
 
-    return _no_results_reply(), []
+    return _no_results_reply(), [], []

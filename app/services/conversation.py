@@ -1,5 +1,6 @@
 import logging
 import re
+import unicodedata
 from typing import Optional
 
 from app.services.clientify import clientify_client
@@ -8,7 +9,7 @@ from app.services.playbook_router import (
     infer_line_hint_from_text,
     clarify_question_for_text,
 )
-from app.services.product_search import smart_product_search
+from app.services.product_search import smart_product_search, format_products_reply
 from app.services.woocommerce import woocommerce_client
 from app.services.session_state import (
     get_line_hint,
@@ -20,6 +21,9 @@ from app.services.session_state import (
     mark_greeted,
     get_consult_questions,
     add_consult_question,
+    get_next_search_results,
+    set_search_pool,
+    clear_search_pool,
 )
 from app.services.openai_consultant import select_consultant_question
 from app.utils.time import is_weekend_now, time_greeting
@@ -53,6 +57,35 @@ def _with_greeting(phone: str, text: str) -> str:
     greeting = time_greeting()
     mark_greeted(phone)
     return f"{greeting}. {text}"
+
+
+def _normalize_intent(text: str) -> str:
+    t = (text or "").strip().lower()
+    t = "".join(
+        ch
+        for ch in unicodedata.normalize("NFD", t)
+        if unicodedata.category(ch) != "Mn"
+    )
+    t = re.sub(r"[^a-z0-9\s]", " ", t)
+    t = re.sub(r"\s+", " ", t)
+    return t
+
+
+def _is_more_options_request(text: str) -> bool:
+    norm = _normalize_intent(text)
+    if not norm:
+        return False
+    triggers = [
+        "mas opciones",
+        "mas productos",
+        "tienes mas opciones",
+        "tienes mas productos",
+        "hay mas opciones",
+        "hay mas productos",
+        "ver mas",
+        "mas resultados",
+    ]
+    return any(t in norm for t in triggers)
 
 
 async def process_incoming_message(phone: str, text: str) -> str:
@@ -96,6 +129,7 @@ async def process_incoming_message(phone: str, text: str) -> str:
         cand = get_candidate_by_choice(phone, int(choice_match.group(1)))
         if cand:
             clear_last_candidates(phone)
+            clear_search_pool(phone)
             name = cand.get("name") or "producto"
             sku_value = cand.get("sku") or "N/D"
             price = format_cop(cand.get("price"))
@@ -110,10 +144,23 @@ async def process_incoming_message(phone: str, text: str) -> str:
                 ),
             )
 
+    if _is_more_options_request(text):
+        next_items = get_next_search_results(phone, batch_size=3)
+        if next_items:
+            clear_last_candidates(phone)
+            set_last_candidates(phone, next_items)
+            return _with_greeting(phone, format_products_reply(next_items))
+        return _with_greeting(
+            phone,
+            "No tengo mas opciones con esa descripcion. "
+            "Puedes darme mas detalles o un SKU?",
+        )
+
     # 3) Router playbook (menú/folletos) ANTES de búsqueda
     pb = route_playbook(phone=phone, text=text, is_weekend=is_weekend_now())
     if pb:
         clear_last_candidates(phone)
+        clear_search_pool(phone)
         return _with_greeting(phone, pb.reply)
 
     hint = get_line_hint(phone)
@@ -127,6 +174,7 @@ async def process_incoming_message(phone: str, text: str) -> str:
     sku = _extract_sku_from_text(text)
     if sku:
         clear_last_candidates(phone)
+        clear_search_pool(phone)
         try:
             product = await woocommerce_client.get_product_by_sku(sku)
         except Exception:
@@ -172,6 +220,7 @@ async def process_incoming_message(phone: str, text: str) -> str:
     choice = await select_consultant_question(text, line_hint=hint, asked_keys=asked)
     if choice:
         clear_last_candidates(phone)
+        clear_search_pool(phone)
         add_consult_question(phone, choice.key)
         return _with_greeting(phone, choice.question)
 
@@ -179,17 +228,23 @@ async def process_incoming_message(phone: str, text: str) -> str:
     question = clarify_question_for_text(text, line_hint=hint)
     if question:
         clear_last_candidates(phone)
+        clear_search_pool(phone)
         return _with_greeting(phone, question)
 
     # 7) Búsqueda inteligente por texto (siempre Woo + rerank)
     try:
-        reply_text, selected = await smart_product_search(text, line_hint=hint)
+        reply_text, selected, pool = await smart_product_search(text, line_hint=hint)
     except Exception:
         logger.exception("Fallo smart_product_search", extra={"phone": phone, "text": text})
         return _with_greeting(
             phone,
             "En este momento no puedo consultar el catálogo. ¿Me indicas el SKU o una foto del producto?",
         )
+
+    if pool:
+        set_search_pool(phone, text, pool, batch_size=3)
+    else:
+        clear_search_pool(phone)
 
     if selected:
         set_last_candidates(phone, selected)

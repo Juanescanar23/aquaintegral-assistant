@@ -93,6 +93,50 @@ def mark_greeted(phone: str) -> None:
     _state[phone] = st
 
 
+def set_search_pool(phone: str, query: str, products: List[Dict[str, Any]], *, batch_size: int = 3) -> None:
+    _purge()
+    st = _state.get(phone, {})
+    st["search_query"] = query
+    st["search_results"] = products[:15]
+    st["search_offset"] = min(batch_size, len(st["search_results"]))
+    st["updated_at"] = _now()
+    _state[phone] = st
+
+
+def get_next_search_results(phone: str, *, batch_size: int = 3) -> List[Dict[str, Any]]:
+    _purge()
+    st = _state.get(phone)
+    if not st:
+        return []
+    results = st.get("search_results")
+    if not isinstance(results, list):
+        return []
+    offset = st.get("search_offset")
+    try:
+        offset_value = int(offset)
+    except Exception:
+        offset_value = 0
+    if offset_value >= len(results):
+        return []
+    next_chunk = results[offset_value : offset_value + batch_size]
+    st["search_offset"] = offset_value + len(next_chunk)
+    st["updated_at"] = _now()
+    _state[phone] = st
+    return [p for p in next_chunk if isinstance(p, dict)]
+
+
+def clear_search_pool(phone: str) -> None:
+    _purge()
+    st = _state.get(phone)
+    if not st:
+        return
+    st.pop("search_results", None)
+    st.pop("search_offset", None)
+    st.pop("search_query", None)
+    st["updated_at"] = _now()
+    _state[phone] = st
+
+
 def get_consult_questions(phone: str) -> List[str]:
     _purge()
     st = _state.get(phone, {})
