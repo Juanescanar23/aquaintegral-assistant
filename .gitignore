@@ -6,3 +6,5 @@ __pycache__/
 .idea/
 .vscode/
 *.log
+app/domain/knowledge_gaps.jsonl
+app/domain/knowledge_drafts.jsonl

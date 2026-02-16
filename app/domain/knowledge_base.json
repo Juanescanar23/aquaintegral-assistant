@@ -1,0 +1,78 @@
+[
+  {
+    "id": "company_overview",
+    "question": "A que se dedica Aqua Integral?",
+    "answer": "Aqua Integral SAS ofrece soluciones en agua potable e industrial, agua residual, bombeo, analisis de agua y piscinas. Brindamos asesoria tecnica, suministro de equipos e instalacion segun producto.",
+    "tags": [
+      "empresa",
+      "aqua integral",
+      "quienes son",
+      "servicios",
+      "lineas"
+    ],
+    "source": "company_profile",
+    "verified": true
+  },
+  {
+    "id": "lineas_negocio",
+    "question": "Que lineas de negocio manejan?",
+    "answer": "Manejamos Agua Potable e Industrial, Agua Residual, Bombeo, Analisis de agua / Medicion y Control, y Piscinas.",
+    "tags": [
+      "lineas",
+      "negocio",
+      "portafolio"
+    ],
+    "source": "company_profile",
+    "verified": true
+  },
+  {
+    "id": "servicios",
+    "question": "Que servicios ofrecen?",
+    "answer": "Ofrecemos asesoria tecnica, suministro de equipos e instalacion (segun producto).",
+    "tags": [
+      "servicios",
+      "asesoria",
+      "instalacion"
+    ],
+    "source": "company_profile",
+    "verified": true
+  },
+  {
+    "id": "catalogo_general",
+    "question": "Tienen catalogo o pagina web?",
+    "answer": "Puedes ver el catalogo general en https://aquaintegral.co/.",
+    "tags": [
+      "catalogo",
+      "web",
+      "pagina",
+      "enlace",
+      "portafolio"
+    ],
+    "source": "catalog_links",
+    "verified": true
+  },
+  {
+    "id": "ubicacion_envios",
+    "question": "Donde estan ubicados y hacen envios?",
+    "answer": "Estamos en Bogota y hacemos envios a nivel nacional.",
+    "tags": [
+      "ubicacion",
+      "direccion",
+      "envios"
+    ],
+    "source": "playbook",
+    "verified": true
+  },
+  {
+    "id": "horario",
+    "question": "Cual es el horario de atencion?",
+    "answer": "De 8am a 1 pm y 2pm a 5pm de lunes a viernes.",
+    "tags": [
+      "horario",
+      "atencion",
+      "horas"
+    ],
+    "source": "playbook",
+    "verified": true
+  }
+]

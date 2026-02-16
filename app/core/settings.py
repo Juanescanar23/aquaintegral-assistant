@@ -76,6 +76,44 @@ class Settings(BaseSettings):
         default=None,
         description="API key de OpenAI (opcional por ahora)",
     )
+    OPENAI_MODEL: Optional[str] = Field(
+        default=None,
+        description="Modelo por defecto de OpenAI (opcional).",
+    )
+    OPENAI_KB_MODEL: Optional[str] = Field(
+        default=None,
+        description="Modelo para borradores de base de conocimiento (opcional).",
+    )
+    OPENAI_INTENT_MODEL: Optional[str] = Field(
+        default=None,
+        description="Modelo específico para clasificación de intentos (opcional).",
+    )
+    OPENAI_CONSULTANT_MODEL: Optional[str] = Field(
+        default=None,
+        description="Modelo específico para preguntas consultivas (opcional).",
+    )
+    OPENAI_RERANK_MODEL: Optional[str] = Field(
+        default=None,
+        description="Modelo específico para rerank de productos (opcional).",
+    )
+
+    # === Knowledge base (auto-aprendizaje controlado) ===
+    KB_AUTO_DRAFT: bool = Field(
+        False,
+        description="Genera borradores de conocimiento con OpenAI cuando falta respuesta.",
+    )
+    KB_AUTO_PUBLISH: bool = Field(
+        False,
+        description="Publica borradores automaticamente en la base de conocimiento.",
+    )
+    KB_MIN_SCORE: int = Field(
+        2,
+        description="Score minimo para usar una respuesta de la base de conocimiento.",
+    )
+    KB_REQUIRE_VERIFIED: bool = Field(
+        True,
+        description="Solo usa entradas verificadas en la base de conocimiento.",
+    )
 
     # === Base de datos (si la usas después) ===
     DATABASE_URL: Optional[str] = Field(

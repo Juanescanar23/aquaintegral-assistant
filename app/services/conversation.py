@@ -31,6 +31,11 @@ from app.services.openai_consultant import select_consultant_question
 from app.services.intent_router import route_info_request
 from app.services.openai_intent import classify_info_intent
 from app.services.info_responder import build_info_response
+from app.services.knowledge_base import (
+    find_knowledge_answer,
+    record_gap_and_draft,
+    should_attempt_knowledge,
+)
 from app.utils.time import is_weekend_now, time_greeting
 from app.utils.formatting import format_cop
 from app.utils.test_mode import prefix_with_test_tag
@@ -278,6 +283,14 @@ async def process_incoming_message(phone: str, text: str) -> str:
         clear_last_candidates(phone)
         clear_search_pool(phone)
         return _respond(info_reply)
+
+    if should_attempt_knowledge(text):
+        kb = find_knowledge_answer(text)
+        if kb:
+            clear_last_candidates(phone)
+            clear_search_pool(phone)
+            return _respond(kb.answer)
+        asyncio.create_task(record_gap_and_draft(text, line_hint=hint))
 
     # 4) OpenAI intent (info/servicios/lineas/catalogo) si aplica
     try:

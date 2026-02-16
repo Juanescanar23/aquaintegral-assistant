@@ -50,6 +50,13 @@ def _extract_text_from_responses_api(payload: Dict[str, Any]) -> str:
     )
 
 
+def _supports_temperature(model: str) -> bool:
+    m = (model or "").strip().lower()
+    if m.startswith("gpt-5"):
+        return False
+    return True
+
+
 async def build_product_search_plan(user_text: str) -> Dict[str, Any]:
     """
     Convierte texto libre del cliente en un plan de busqueda.
@@ -59,7 +66,7 @@ async def build_product_search_plan(user_text: str) -> Dict[str, Any]:
       - question: str
     """
     api_key = _get_env("OPENAI_API_KEY")
-    model = os.getenv("OPENAI_MODEL", "gpt-5-nano")
+    model = getattr(settings, "OPENAI_MODEL", None) or os.getenv("OPENAI_MODEL") or "gpt-5-nano"
 
     schema: Dict[str, Any] = {
         "type": "object",
@@ -125,11 +132,12 @@ async def build_product_search_plan(user_text: str) -> Dict[str, Any]:
                 "schema": schema,
             }
         },
-        "temperature": 0,
         "max_output_tokens": 250,
         # Recomendado para no almacenar conversaciones por defecto
         "store": False,
     }
+    if _supports_temperature(model):
+        body["temperature"] = 0
 
     headers = {
         "Authorization": f"Bearer {api_key}",

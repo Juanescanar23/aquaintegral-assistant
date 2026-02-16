@@ -35,11 +35,20 @@ def _get_openai_config() -> Optional[tuple[str, str]]:
     if not api_key:
         return None
     model = (
-        os.getenv("OPENAI_INTENT_MODEL")
+        getattr(settings, "OPENAI_INTENT_MODEL", None)
+        or getattr(settings, "OPENAI_MODEL", None)
+        or os.getenv("OPENAI_INTENT_MODEL")
         or os.getenv("OPENAI_MODEL")
         or "gpt-5-nano"
     )
     return api_key, model
+
+
+def _supports_temperature(model: str) -> bool:
+    m = (model or "").strip().lower()
+    if m.startswith("gpt-5"):
+        return False
+    return True
 
 
 def _extract_text_from_responses_api(payload: Dict[str, Any]) -> str:
@@ -133,7 +142,6 @@ async def classify_info_intent(
             {"role": "system", "content": system},
             {"role": "user", "content": json.dumps(user_payload, ensure_ascii=False)},
         ],
-        "temperature": 0,
         "text": {
             "format": {
                 "type": "json_schema",
@@ -145,6 +153,8 @@ async def classify_info_intent(
         "store": False,
         "max_output_tokens": 200,
     }
+    if _supports_temperature(model):
+        payload["temperature"] = 0
 
     url = "https://api.openai.com/v1/responses"
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
