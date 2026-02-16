@@ -9,6 +9,7 @@ from app.services.playbook_router import (
     route_playbook,
     infer_line_hint_from_text,
     clarify_question_for_text,
+    WELCOME_MESSAGE,
 )
 from app.services.product_search import smart_product_search, format_products_reply
 from app.services.woocommerce import woocommerce_client
@@ -26,6 +27,7 @@ from app.services.session_state import (
     get_next_search_results,
     set_search_pool,
     clear_search_pool,
+    clear_session,
 )
 from app.services.openai_consultant import select_consultant_question
 from app.services.intent_router import route_info_request
@@ -141,7 +143,50 @@ def _is_only_greeting(text: str) -> bool:
         "saludos",
         "que tal",
     }
-    return norm in greetings
+    if norm in greetings:
+        return True
+    tokens = norm.split()
+    if not tokens:
+        return True
+    allowed = {
+        "hola",
+        "buenos",
+        "buenas",
+        "buen",
+        "dia",
+        "dias",
+        "tardes",
+        "noches",
+        "saludos",
+        "que",
+        "tal",
+    }
+    if not all(t in allowed for t in tokens):
+        return False
+    if norm == "que tal":
+        return True
+    return any(t in {"hola", "buenos", "buenas", "saludos"} for t in tokens)
+
+
+def _is_reset_request(text: str) -> bool:
+    norm = _normalize_intent(text)
+    if not norm:
+        return False
+    triggers = {
+        "reinicia",
+        "reiniciar",
+        "reinicie",
+        "reinicio",
+        "reiniciar conversacion",
+        "reiniciar conversación",
+        "reset",
+        "resetear",
+        "empezar de nuevo",
+        "comenzar de nuevo",
+        "menu",
+        "inicio",
+    }
+    return any(t in norm for t in triggers)
 
 
 def _title_case_name(raw: str) -> str:
@@ -226,6 +271,10 @@ async def process_incoming_message(phone: str, text: str) -> str:
         if name_prefix:
             return f"{name_prefix}\n\n{body}"
         return _with_greeting(phone, body)
+
+    if _is_reset_request(text):
+        clear_session(phone)
+        return _respond(WELCOME_MESSAGE)
 
     # 2) Si el usuario responde 1/2/3 y hay candidatos pendientes, interpretar como selección
     choice_match = re.fullmatch(r"\s*([1-3])\s*[\.\)\-]?\s*", text or "")

@@ -182,3 +182,8 @@ def get_customer_name(phone: str) -> Optional[str]:
         return None
     name = st.get("customer_name")
     return name if isinstance(name, str) and name.strip() else None
+
+
+def clear_session(phone: str) -> None:
+    _purge()
+    _state.pop(phone, None)

@@ -56,7 +56,36 @@ def _is_greeting(norm: str) -> bool:
         "hi",
         "hello",
     }
-    return norm in greetings
+    if norm in greetings:
+        return True
+
+    tokens = norm.split()
+    if not tokens:
+        return False
+
+    allowed = {
+        "hola",
+        "buenos",
+        "buenas",
+        "buen",
+        "dia",
+        "dias",
+        "tardes",
+        "noches",
+        "saludos",
+        "que",
+        "tal",
+        "hey",
+        "hi",
+        "hello",
+    }
+    if not all(t in allowed for t in tokens):
+        return False
+
+    if norm == "que tal":
+        return True
+
+    return any(t in {"hola", "buenos", "buenas", "saludos", "hey", "hi", "hello"} for t in tokens)
 
 
 def _extract_menu_choice(norm: str) -> Optional[str]:
