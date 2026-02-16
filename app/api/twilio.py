@@ -72,7 +72,7 @@ async def twilio_webhook(request: Request):
         return Response(content=_twiml_message(""), media_type="application/xml")
 
     try:
-        reply_text = await process_incoming_message(phone, body_in)
+        reply_text = await process_incoming_message(phone, body_in, channel="twilio")
     except Exception:
         logger.exception("Error procesando conversacion (Clientify/Woo/etc)")
         reply_text = (

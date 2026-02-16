@@ -1,7 +1,9 @@
 import time
 from typing import Any, Dict, List, Optional
 
-_TTL_SECONDS = 60 * 30  # 30 min
+from app.core.settings import get_settings
+
+_TTL_SECONDS = 60 * 60 * 6  # 6 horas
 _GREETING_TTL_SECONDS = 60 * 60 * 6  # 6 horas
 _state: Dict[str, Dict[str, Any]] = {}
 
@@ -11,7 +13,10 @@ def _now() -> float:
 
 
 def _purge() -> None:
-    cutoff = _now() - _TTL_SECONDS
+    settings = get_settings()
+    final_after = int(getattr(settings, "IDLE_FINAL_AFTER_MINUTES", 60)) * 60
+    ttl = max(_TTL_SECONDS, final_after + 60 * 10)
+    cutoff = _now() - ttl
     dead = [k for k, v in _state.items() if float(v.get("updated_at", 0.0)) < cutoff]
     for k in dead:
         _state.pop(k, None)
@@ -182,6 +187,72 @@ def get_customer_name(phone: str) -> Optional[str]:
         return None
     name = st.get("customer_name")
     return name if isinstance(name, str) and name.strip() else None
+
+
+def mark_user_activity(phone: str, *, channel: str) -> None:
+    _purge()
+    st = _state.get(phone, {})
+    st["last_user_at"] = _now()
+    st["channel"] = channel or "meta"
+    st["followup_count"] = 0
+    st.pop("followup_sent_at", None)
+    st.pop("final_sent_at", None)
+    st.pop("closed_at", None)
+    st["updated_at"] = _now()
+    _state[phone] = st
+
+
+def get_idle_actions(
+    *,
+    now: float,
+    followup_after: float,
+    final_after: float,
+    max_followups: int,
+) -> List[Dict[str, Any]]:
+    _purge()
+    actions: List[Dict[str, Any]] = []
+    for phone, st in _state.items():
+        last_user = st.get("last_user_at")
+        if not isinstance(last_user, (int, float)):
+            continue
+        if st.get("closed_at"):
+            continue
+        elapsed = now - float(last_user)
+        channel = st.get("channel") or "meta"
+        followup_count = int(st.get("followup_count") or 0)
+        final_sent = st.get("final_sent_at")
+
+        if elapsed >= final_after and not final_sent:
+            actions.append({"phone": phone, "channel": channel, "kind": "final"})
+            continue
+
+        if elapsed >= followup_after and followup_count < max_followups:
+            last_follow = st.get("followup_sent_at")
+            if not isinstance(last_follow, (int, float)):
+                actions.append({"phone": phone, "channel": channel, "kind": "followup"})
+            elif (now - float(last_follow)) >= followup_after:
+                actions.append({"phone": phone, "channel": channel, "kind": "followup"})
+
+    return actions
+
+
+def mark_followup_sent(phone: str) -> None:
+    _purge()
+    st = _state.get(phone, {})
+    count = int(st.get("followup_count") or 0)
+    st["followup_count"] = count + 1
+    st["followup_sent_at"] = _now()
+    st["updated_at"] = _now()
+    _state[phone] = st
+
+
+def close_session(phone: str) -> None:
+    _purge()
+    st = _state.get(phone, {})
+    st["final_sent_at"] = _now()
+    st["closed_at"] = _now()
+    st["updated_at"] = _now()
+    _state[phone] = st
 
 
 def clear_session(phone: str) -> None:

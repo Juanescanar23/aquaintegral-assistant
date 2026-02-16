@@ -39,6 +39,13 @@ API en FastAPI que recibe webhooks de WhatsApp (Meta o Twilio), registra el inte
 - `KB_AUTO_PUBLISH`: publica borradores automáticamente en la base (true/false).
 - `KB_MIN_SCORE`: score mínimo para usar una respuesta de la base (default `2`).
 - `KB_REQUIRE_VERIFIED`: exige `verified=true` para responder desde la base (true/false).
+- `IDLE_FOLLOWUP_ENABLED`: activa mensajes automáticos por inactividad (true/false).
+- `IDLE_FOLLOWUP_AFTER_MINUTES`: minutos de inactividad antes del primer seguimiento.
+- `IDLE_FINAL_AFTER_MINUTES`: minutos de inactividad antes del mensaje de cierre.
+- `IDLE_CHECK_INTERVAL_SECONDS`: intervalo de chequeo en segundos.
+- `IDLE_MAX_FOLLOWUPS`: máximo de seguimientos por conversación.
+- `IDLE_FOLLOWUP_MESSAGE`: mensaje de seguimiento por inactividad.
+- `IDLE_FINAL_MESSAGE`: mensaje de cierre por inactividad.
 
 ## Base de conocimiento y aprendizaje controlado
 El bot usa una base de conocimiento local para respuestas institucionales y puede generar borradores con OpenAI cuando no encuentra respuesta.

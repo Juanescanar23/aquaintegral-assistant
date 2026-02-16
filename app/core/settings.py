@@ -115,6 +115,36 @@ class Settings(BaseSettings):
         description="Solo usa entradas verificadas en la base de conocimiento.",
     )
 
+    # === Mensajes por inactividad ===
+    IDLE_FOLLOWUP_ENABLED: bool = Field(
+        False,
+        description="Activa mensajes automáticos por inactividad (seguimiento y cierre).",
+    )
+    IDLE_FOLLOWUP_AFTER_MINUTES: int = Field(
+        15,
+        description="Minutos de inactividad antes del primer seguimiento.",
+    )
+    IDLE_FINAL_AFTER_MINUTES: int = Field(
+        60,
+        description="Minutos de inactividad antes del mensaje de cierre.",
+    )
+    IDLE_CHECK_INTERVAL_SECONDS: int = Field(
+        60,
+        description="Intervalo de chequeo para inactividad (segundos).",
+    )
+    IDLE_MAX_FOLLOWUPS: int = Field(
+        1,
+        description="Cantidad máxima de seguimientos por conversación.",
+    )
+    IDLE_FOLLOWUP_MESSAGE: str = Field(
+        "¿Sigues ahí? 😊 Si quieres, cuéntame qué necesitas y te ayudo con opciones de Aqua Integral. 💧",
+        description="Mensaje de seguimiento por inactividad.",
+    )
+    IDLE_FINAL_MESSAGE: str = Field(
+        "¡Gracias por escribir a Aqua Integral! 🙌 Si ahora no es el momento, estaré aquí para ayudarte cuando quieras. 💧",
+        description="Mensaje de cierre por inactividad.",
+    )
+
     # === Base de datos (si la usas después) ===
     DATABASE_URL: Optional[str] = Field(
         default=None,

@@ -7,6 +7,7 @@ from app.core.settings import get_settings
 from app.api.woocommerce import router as woocommerce_router
 from app.api.twilio import router as twilio_router
 from app.api.whatsapp import router as whatsapp_router
+from app.services.idle_followup import start_idle_followup_task
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -20,6 +21,11 @@ app = FastAPI(
 app.include_router(whatsapp_router)
 app.include_router(woocommerce_router)
 app.include_router(twilio_router)
+
+
+@app.on_event("startup")
+async def _startup() -> None:
+    start_idle_followup_task()
 
 # PNG 1x1 de relleno para iconos (placeholder)
 _PLACEHOLDER_PNG = (

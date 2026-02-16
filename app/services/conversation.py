@@ -28,6 +28,7 @@ from app.services.session_state import (
     set_search_pool,
     clear_search_pool,
     clear_session,
+    mark_user_activity,
 )
 from app.services.openai_consultant import select_consultant_question
 from app.services.intent_router import route_info_request
@@ -248,8 +249,9 @@ def _is_more_options_request(text: str) -> bool:
     return any(t in norm for t in triggers)
 
 
-async def process_incoming_message(phone: str, text: str) -> str:
+async def process_incoming_message(phone: str, text: str, *, channel: str = "meta") -> str:
     logger.info("Procesando mensaje entrante de WhatsApp", extra={"phone": phone, "text": text})
+    mark_user_activity(phone, channel=channel)
 
     # 1) Clientify en segundo plano para no bloquear la respuesta
     asyncio.create_task(_sync_clientify(phone, text))

@@ -105,7 +105,7 @@ async def whatsapp_webhook(request: Request):
 
     try:
         # Lógica central: Clientify + WooCommerce + negocio
-        reply_text = await process_incoming_message(phone, text)
+        reply_text = await process_incoming_message(phone, text, channel="meta")
 
         # Envío real (o stub) a WhatsApp
         await send_message(phone, reply_text)
