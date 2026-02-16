@@ -373,11 +373,11 @@ async def process_incoming_message(phone: str, text: str) -> str:
                 woocommerce_client.get_product_by_sku(sku),
                 timeout=SKU_TIMEOUT_SECONDS,
             )
-    except asyncio.TimeoutError:
-        return _respond(
-            "Estoy revisando el catálogo de Aqua Integral y tomó más tiempo del esperado. "
-            "Para ayudarte mejor, confírmame la marca o envíame una foto del producto."
-        )
+        except asyncio.TimeoutError:
+            return _respond(
+                "Estoy revisando el catálogo de Aqua Integral y tomó más tiempo del esperado. "
+                "Para ayudarte mejor, confírmame la marca o envíame una foto del producto."
+            )
         except Exception:
             logger.exception("Error consultando WooCommerce para SKU", extra={"phone": phone, "sku": sku})
             return _respond(INVENTORY_ERROR_REPLY)
