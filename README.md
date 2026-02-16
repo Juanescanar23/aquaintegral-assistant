@@ -24,12 +24,51 @@ API en FastAPI que recibe webhooks de WhatsApp (Meta o Twilio), registra el inte
 - `WOOCOMMERCE_CONSUMER_KEY`: Consumer Key de WooCommerce REST API (ej: `ck_...`).
 - `WOOCOMMERCE_CONSUMER_SECRET`: Consumer Secret de WooCommerce REST API (ej: `cs_...`).
 - `OPENAI_API_KEY`: API key opcional de OpenAI.
+- `OPENAI_MODEL`: modelo por defecto de OpenAI (recomendado `gpt-5.2`).
+- `OPENAI_INTENT_MODEL`: modelo para clasificación de intentos (opcional).
+- `OPENAI_CONSULTANT_MODEL`: modelo para preguntas consultivas (opcional).
+- `OPENAI_RERANK_MODEL`: modelo para rerank de productos (opcional).
+- `OPENAI_KB_MODEL`: modelo para borradores de base de conocimiento (opcional).
 - `DATABASE_URL`: URL de base de datos opcional.
 - `HOST`: host para levantar la app (por defecto `0.0.0.0`).
 - `PORT`: puerto para levantar la app (por defecto `8000`).
 - `BOT_TEST_MODE`: activa modo pruebas (true/false).
 - `BOT_TEST_NUMBERS`: lista de números permitidos separados por coma (solo dígitos, ej: `573001112233,573001112234`).
 - `BOT_TEST_TAG`: prefijo para notas y deals cuando el bot está en modo pruebas (por defecto `[TEST]`).
+- `KB_AUTO_DRAFT`: genera borradores con OpenAI cuando falta respuesta (true/false).
+- `KB_AUTO_PUBLISH`: publica borradores automáticamente en la base (true/false).
+- `KB_MIN_SCORE`: score mínimo para usar una respuesta de la base (default `2`).
+- `KB_REQUIRE_VERIFIED`: exige `verified=true` para responder desde la base (true/false).
+
+## Base de conocimiento y aprendizaje controlado
+El bot usa una base de conocimiento local para respuestas institucionales y puede generar borradores con OpenAI cuando no encuentra respuesta.
+
+Archivos clave:
+- `app/domain/knowledge_base.json`: base de conocimiento curada (versionada en git).
+- `app/domain/knowledge_gaps.jsonl`: preguntas que faltaron respuesta (log, ignorado en git).
+- `app/domain/knowledge_drafts.jsonl`: borradores generados por OpenAI (log, ignorado en git).
+
+Flujo recomendado:
+1) El bot intenta responder desde `knowledge_base.json`.
+2) Si no encuentra respuesta suficiente, registra la pregunta en `knowledge_gaps.jsonl`.
+3) Si `KB_AUTO_DRAFT=true`, genera un borrador en `knowledge_drafts.jsonl`.
+4) Un humano revisa el borrador y lo promueve a `knowledge_base.json` con `verified=true`.
+
+Ejemplo de entrada en `knowledge_base.json`:
+```json
+{
+  "id": "company_overview",
+  "question": "A que se dedica Aqua Integral?",
+  "answer": "Aqua Integral SAS ofrece soluciones en agua potable e industrial, agua residual, bombeo, analisis de agua y piscinas.",
+  "tags": ["empresa", "aqua integral", "servicios"],
+  "source": "company_profile",
+  "verified": true
+}
+```
+
+Notas:
+- El auto-aprendizaje es **controlado**: por defecto NO publica sin revisión.
+- Si deseas auto-publicación total, define `KB_AUTO_PUBLISH=true` (no recomendado sin control).
 
 ## Instalación y ejecución local
 1) Crear y activar entorno virtual
