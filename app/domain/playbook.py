@@ -6,13 +6,16 @@ FAQ_UBICACION_ENVIOS = "Estamos en Bogotá y hacemos envíos a nivel nacional."
 FAQ_HORARIO_ATENCION = "MISSING_TEMPLATE_FAQ_HORARIO_ATENCION"
 FAQ_PAGOS_TARJETA_ADDI = "MISSING_TEMPLATE_FAQ_PAGOS_TARJETA_ADDI"
 
-WELCOME_MESSAGE = """¡Hola y bienvenido a Aqua Integral SAS! Para brindarte la mejor atención, ¿en qué línea de negocio estás interesado?
-¡Estamos listos para ayudarte! Al continuar con esta conversa...iento de Datos Personales, puedes consultarla en aquaintegral.co
-1.- Agua Potable e Industrial
-2.- Agua Residual
-3.- Bombeo
-4.- Análisis de agua / Medición y Control
-5.- Piscinas"""
+WELCOME_MESSAGE = """¡Bienvenido a Aqua Integral SAS! 💧
+Para brindarte la mejor atención, ¿en qué línea de negocio estás interesado?
+
+Estamos listos para ayudarte. Al continuar con esta conversación aceptas nuestro Tratamiento de Datos Personales, puedes consultarlo en aquaintegral.co
+
+1.- Agua Potable e Industrial 💧
+2.- Agua Residual ♻️
+3.- Bombeo ⚙️
+4.- Análisis de agua / Medición y Control 🧪
+5.- Piscinas 🏊‍♂️"""
 
 PLAYBOOK_AGUA_POTABLE = """¡Hola! En Aqua Integral SAS te ofrecemos soluciones completas para Agua Potable e Industrial. Contamos con productos como:
 Desinfección ultravioleta
