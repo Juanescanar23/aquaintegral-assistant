@@ -11,11 +11,11 @@ Para brindarte la mejor atención, ¿en qué línea de negocio estás interesado
 
 Estamos listos para ayudarte. Al continuar con esta conversación aceptas nuestro Tratamiento de Datos Personales, puedes consultarlo en aquaintegral.co
 
-1.- Agua Potable e Industrial 💧
-2.- Agua Residual ♻️
-3.- Bombeo ⚙️
-4.- Análisis de agua / Medición y Control 🧪
-5.- Piscinas 🏊‍♂️"""
+1.- 💧 Agua Potable e Industrial 💧
+2.- ♻️ Agua Residual 
+3.- ⚙️ Bombeo 
+4.- 🧪 Análisis de agua / Medición y Control 
+5.- 🏊‍♂️ Piscinas """
 
 PLAYBOOK_AGUA_POTABLE = """¡Hola! En Aqua Integral SAS te ofrecemos soluciones completas para Agua Potable e Industrial. Contamos con productos como:
 Desinfección ultravioleta
