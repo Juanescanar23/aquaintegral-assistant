@@ -289,12 +289,15 @@ def _format_products_reply(
         price = p["price"]
         stock_status = p["stock_status"]
         stock_qty = p["stock_quantity"]
+        link = p.get("permalink") or ""
 
         lines.append("")
         lines.append(f"{i}) *{name}*")
         lines.append(f"SKU: {sku or 'N/D'}")
         lines.append(f"Precio: {format_cop(price)}" if price not in (None, "") else "Precio: N/D")
         lines.append(f"Stock: {_format_stock(stock_qty, stock_status)}")
+        if link:
+            lines.append(f"Enlace: {link}")
 
     lines.append("")
     lines.append("Si alguna te interesa, responde con 1, 2 o 3, o con el SKU y te cotizo.")
